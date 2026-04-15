@@ -7,6 +7,7 @@ static Window *s_window;
 static Layer *s_canvas_layer;
 static GColor s_bg_color;
 static GColor s_line_color;
+static int32_t s_angle;
 
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -19,6 +20,20 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, s_line_color);
   graphics_context_set_stroke_width(ctx, 2);
   graphics_draw_circle(ctx, center, radius - 2);
+
+  int32_t r = radius - 2;
+  GPoint end = {
+    .x = center.x + (sin_lookup(s_angle) * r / TRIG_MAX_RATIO),
+    .y = center.y - (cos_lookup(s_angle) * r / TRIG_MAX_RATIO),
+  };
+  graphics_draw_line(ctx, center, end);
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  s_angle = (s_angle + TRIG_MAX_ANGLE / 2) % TRIG_MAX_ANGLE;
+  if (s_canvas_layer) {
+    layer_mark_dirty(s_canvas_layer);
+  }
 }
 
 static void load_settings(void) {
@@ -77,6 +92,8 @@ static void init(void) {
 
   app_message_register_inbox_received(inbox_received_handler);
   app_message_open(64, 64);
+
+  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
 
 static void deinit(void) {
