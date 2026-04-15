@@ -4,22 +4,37 @@ A minimal Pebble watchface that draws the largest circle that fits on the
 display. Runs on every Pebble platform: Aplite, Basalt, Chalk, Diorite, Emery,
 and Gabbro (Pebble 2 Duo / Core Devices).
 
-## Prerequisites
+## Building
 
-- [Pebble SDK](https://github.com/pebble-dev/pebble-tool) (the community
-  `pebble-tool` fork works well on modern systems and adds the Gabbro target)
-- Python 2.7 (required by the SDK build scripts)
-- Node.js (for the JS shim bundled with the app)
+- Install the SDK almost according to https://developer.repebble.com/sdk/
+  - Install node
+  - `sudo apt install libsdl1.2debian libfdt1`
+  - `brew install uv`
+- Create a virtual env: `conda create --prefix conda-env python=3.13` and
+  activate it with `conda activate conda-env/` (it should also work down to
+  Python 3.10).
+- `uv pip install pebble-tool`
+- `pebble sdk install latest`
+- `pebble build`
+- `pebble install --emulator basalt`
 
-## Build
+Once it's set up, just run:
 
-```sh
-pebble build
-```
+- `conda activate conda-env`
+- `pebble build`
+- `pebble install --emulator basalt`
 
 The compiled `.pbw` bundle will be written to `build/rotating-lines-face.pbw`.
 
-## Install
+If installing to the emulator fails:
+
+- Build and install a known-working project (e.g. pebble-demo)
+- `pebble clean`
+- `uv pip install --upgrade --reinstall pebble-tool`
+- `rm -rf ~/.pebble-sdk`
+- `pebble sdk install latest`
+
+## Installing to a watch
 
 With a phone running the Pebble app on the same network as your computer:
 
