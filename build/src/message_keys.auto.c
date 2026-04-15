@@ -1,3 +1,4 @@
+
 #include <stdint.h>
 
 //
@@ -5,3 +6,5 @@
 // DO NOT MODIFY - CHANGES WILL BE OVERWRITTEN
 //
 
+uint32_t MESSAGE_KEY_BG_COLOR = 10000;
+uint32_t MESSAGE_KEY_LINE_COLOR = 10001;

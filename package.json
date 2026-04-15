@@ -24,6 +24,10 @@
     "resources": {
       "media": []
     },
-    "capabilities": []
+    "capabilities": ["configurable"],
+    "messageKeys": [
+      "BG_COLOR",
+      "LINE_COLOR"
+    ]
   }
 }
