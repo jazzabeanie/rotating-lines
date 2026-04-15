@@ -13,7 +13,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, center, radius - 1);
+  graphics_draw_circle(ctx, center, radius - 2);
 }
 
 static void window_load(Window *window) {
