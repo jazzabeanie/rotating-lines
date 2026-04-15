@@ -22,11 +22,11 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_draw_circle(ctx, center, radius - 2);
 
   int32_t r = radius - 2;
-  GPoint end = {
-    .x = center.x + (sin_lookup(s_angle) * r / TRIG_MAX_RATIO),
-    .y = center.y - (cos_lookup(s_angle) * r / TRIG_MAX_RATIO),
-  };
-  graphics_draw_line(ctx, center, end);
+  int32_t dx = sin_lookup(s_angle) * r / TRIG_MAX_RATIO;
+  int32_t dy = cos_lookup(s_angle) * r / TRIG_MAX_RATIO;
+  GPoint p1 = { .x = center.x - dx / 2, .y = center.y + dy / 2 };
+  GPoint p2 = { .x = center.x + dx / 2, .y = center.y - dy / 2 };
+  graphics_draw_line(ctx, p1, p2);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
