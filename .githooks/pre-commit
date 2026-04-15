@@ -23,3 +23,5 @@ for i in 1 2 3 4 5; do
 done
 
 git add screenshots/basalt-*.png
+
+pebble kill
