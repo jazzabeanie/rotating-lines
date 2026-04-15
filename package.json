@@ -1,0 +1,29 @@
+{
+  "name": "rotating-lines-face",
+  "author": "",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Rotating Lines Face",
+    "uuid": "d2f3a1b4-5c6e-4a7b-8c9d-0e1f2a3b4c5d",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "resources": {
+      "media": []
+    },
+    "capabilities": []
+  }
+}
