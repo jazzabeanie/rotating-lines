@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! git diff --cached --name-only | grep -qE '^(src/|wscript|package.json)'; then
+  exit 0
+fi
+
+if [ -z "$CONDA_DEFAULT_ENV" ]; then
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate "$repo_root/conda-env"
+fi
+
+pebble build
+pebble install --emulator basalt
+
+mkdir -p screenshots
+for i in 1 2 3 4 5; do
+  pebble screenshot --emulator basalt "screenshots/basalt-$i.png"
+  [ "$i" -lt 5 ] && sleep 1
+done
+
+git add screenshots/basalt-*.png

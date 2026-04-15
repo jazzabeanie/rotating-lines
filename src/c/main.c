@@ -30,7 +30,8 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_angle = (s_angle + TRIG_MAX_ANGLE / 2) % TRIG_MAX_ANGLE;
+  int32_t secs = tick_time->tm_sec + tick_time->tm_min * 60;
+  s_angle = (secs * (TRIG_MAX_ANGLE / 2) / 60) % TRIG_MAX_ANGLE;
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
   }
@@ -93,7 +94,7 @@ static void init(void) {
   app_message_register_inbox_received(inbox_received_handler);
   app_message_open(64, 64);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 }
 
 static void deinit(void) {
