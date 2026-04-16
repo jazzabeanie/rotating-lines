@@ -8,7 +8,8 @@ static Layer *s_canvas_layer;
 static TextLayer *s_time_layer;
 static GColor s_bg_color;
 static GColor s_line_color;
-static int32_t s_angle;
+static int32_t s_inner_angle;
+static int32_t s_outer_angle;
 static char s_time_buf[12];
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
@@ -53,12 +54,15 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_width(ctx, 2);
   graphics_draw_circle(ctx, center, radius - 2);
 
-  draw_inner_lines(ctx, center, radius - 2, s_angle);
-  draw_outer_lines(ctx, center, radius - 2, s_angle);
+  draw_inner_lines(ctx, center, radius - 2, s_inner_angle);
+  draw_outer_lines(ctx, center, radius - 2, s_outer_angle);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
+  s_outer_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
+  int32_t per_hour = TRIG_MAX_ANGLE / 24;
+  int32_t frac_secs = tick_time->tm_min * 60 + tick_time->tm_sec;
+  s_inner_angle = tick_time->tm_hour * per_hour + frac_secs * per_hour / 3600;
   strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
   text_layer_set_text(s_time_layer, s_time_buf);
   if (s_canvas_layer) {
