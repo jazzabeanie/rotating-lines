@@ -50,21 +50,60 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angl
   }
 }
 
+static void draw_marker_text(GContext *ctx, GPoint center, int32_t dist, int32_t mark_angle, const char *text) {
+  GPoint pos = {
+    .x = center.x + sin_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+    .y = center.y - cos_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+  };
+  GRect rect = GRect(pos.x - 14, pos.y - 12, 28, 20);
+  graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                     rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+}
+
+static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
+  int hour = t->tm_hour % 12;
+  if (hour == 0) hour = 12;
+  int minute = t->tm_min;
+
+  int32_t dist = r_circle + 10;
+  char buf[4];
+
+  graphics_context_set_text_color(ctx, s_line_color);
+
+  int32_t h_angle = (hour % 12) * TRIG_MAX_ANGLE / 12;
+  snprintf(buf, sizeof(buf), "%d", hour);
+  draw_marker_text(ctx, center, dist, h_angle, buf);
+
+  int hour_minutes = (hour % 12) * 5;
+  int diff = minute - hour_minutes;
+  if (diff < 0) diff = -diff;
+  if (diff > 30) diff = 60 - diff;
+  if (diff >= 3) {
+    int32_t m_angle = minute * TRIG_MAX_ANGLE / 60;
+    snprintf(buf, sizeof(buf), "%d", minute);
+    draw_marker_text(ctx, center, dist, m_angle, buf);
+  }
+}
+
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
   uint16_t radius = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 2;
+  int32_t r = radius - 14;
 
   graphics_context_set_fill_color(ctx, s_bg_color);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   graphics_context_set_stroke_color(ctx, s_line_color);
   graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, center, radius - 2);
+  graphics_draw_circle(ctx, center, r);
 
-  draw_inner_lines(ctx, center, radius - 2, s_inner_angle);
-  draw_middle_lines(ctx, center, radius - 2, s_middle_angle);
-  draw_rim_lines(ctx, center, radius - 2, s_outer_angle);
+  draw_inner_lines(ctx, center, r, s_inner_angle);
+  draw_middle_lines(ctx, center, r, s_middle_angle);
+  draw_rim_lines(ctx, center, r, s_outer_angle);
+  draw_time_markers(ctx, center, r);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
