@@ -47,7 +47,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_angle = tick_time->tm_sec * TRIG_MAX_ANGLE / 60;
+  s_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
   }
