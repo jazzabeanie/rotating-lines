@@ -192,6 +192,17 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
   trigger_smooth_rotation();
 }
 
+static void click_handler(ClickRecognizerRef recognizer, void *context) {
+  trigger_smooth_rotation();
+}
+
+static void click_config_provider(void *context) {
+  window_single_click_subscribe(BUTTON_ID_UP, click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, click_handler);
+  window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_angles();
 }
@@ -257,6 +268,7 @@ static void init(void) {
     .load = window_load,
     .unload = window_unload,
   });
+  window_set_click_config_provider(s_window, click_config_provider);
   window_stack_push(s_window, true);
 
   app_message_register_inbox_received(inbox_received_handler);
