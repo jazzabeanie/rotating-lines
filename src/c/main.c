@@ -29,7 +29,8 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 
 static void draw_clock_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
   for (int hour = 0; hour < 12; hour++) {
-    draw_rotating_line(ctx, hour_pivot(center, r, hour), r, angle);
+    int32_t offset = hour * TRIG_MAX_ANGLE / 24;
+    draw_rotating_line(ctx, hour_pivot(center, r, hour), r, angle + offset);
   }
 }
 
