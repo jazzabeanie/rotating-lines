@@ -1,6 +1,6 @@
 #include <pebble.h>
 
-#define PERSIST_KEY_BG_COLOR   1
+#define PERSIST_KEY_BG_COLOR 1
 #define PERSIST_KEY_LINE_COLOR 2
 
 static Window *s_window;
