@@ -3,6 +3,8 @@
 #define PERSIST_KEY_BG_COLOR 1
 #define PERSIST_KEY_LINE_COLOR 2
 
+#define SMOOTH_ROTATION_INTERVAL_MS 33
+
 static Window *s_window;
 static Layer *s_canvas_layer;
 // static TextLayer *s_time_layer;
@@ -12,6 +14,9 @@ static int32_t s_inner_angle;
 static int32_t s_middle_angle;
 static int32_t s_outer_angle;
 // static char s_time_buf[12];
+
+static bool s_smooth_rotation = true;
+static AppTimer *s_smooth_timer;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -120,17 +125,44 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   draw_time_markers(ctx, center, r);
 }
 
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_outer_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
-  int32_t hour_secs = tick_time->tm_min * 60 + tick_time->tm_sec;
-  s_middle_angle = hour_secs * (TRIG_MAX_ANGLE / 2) / 3600;
-  int32_t per_hour = TRIG_MAX_ANGLE / 24;
-  s_inner_angle = tick_time->tm_hour * per_hour + hour_secs * per_hour / 3600;
-  // strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
-  // text_layer_set_text(s_time_layer, s_time_buf);
+static void update_angles(void) {
+  time_t now;
+  uint16_t ms;
+  time_ms(&now, &ms);
+  struct tm *t = localtime(&now);
+
+  int64_t sec_ms = (int64_t)t->tm_sec * 1000 + ms;
+  s_outer_angle = (int32_t)(sec_ms * (TRIG_MAX_ANGLE / 2) / 60000);
+
+  int64_t hour_ms = ((int64_t)t->tm_min * 60 + t->tm_sec) * 1000 + ms;
+  s_middle_angle = (int32_t)(hour_ms * (TRIG_MAX_ANGLE / 2) / 3600000);
+
+  int64_t day_ms = (((int64_t)t->tm_hour * 60 + t->tm_min) * 60 + t->tm_sec) * 1000 + ms;
+  s_inner_angle = (int32_t)(day_ms * TRIG_MAX_ANGLE / 86400000);
+
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
   }
+}
+
+static void smooth_rotation_tick(void *data);
+
+static void start_smooth_rotation(void) {
+  s_smooth_rotation = true;
+  if (!s_smooth_timer) {
+    s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+  }
+}
+
+static void smooth_rotation_tick(void *data) {
+  s_smooth_timer = NULL;
+  if (!s_smooth_rotation) return;
+  update_angles();
+  s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_angles();
 }
 
 static void load_settings(void) {
@@ -200,6 +232,10 @@ static void init(void) {
   app_message_open(64, 64);
 
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+
+  if (s_smooth_rotation) {
+    start_smooth_rotation();
+  }
 }
 
 static void deinit(void) {
