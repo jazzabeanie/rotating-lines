@@ -8,14 +8,16 @@ static Layer *s_canvas_layer;
 static TextLayer *s_time_layer;
 static GColor s_bg_color;
 static GColor s_line_color;
-static int32_t s_angle;
+static int32_t s_inner_angle;
+static int32_t s_middle_angle;
+static int32_t s_outer_angle;
 static char s_time_buf[12];
 
-static GPoint hour_pivot(GPoint center, int32_t r, int hour) {
-  int32_t hour_angle = hour * TRIG_MAX_ANGLE / 12;
+static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
+  int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
   return (GPoint){
-    .x = center.x + sin_lookup(hour_angle) * (r / 4) / TRIG_MAX_RATIO,
-    .y = center.y - cos_lookup(hour_angle) * (r / 4) / TRIG_MAX_RATIO,
+    .x = center.x + sin_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+    .y = center.y - cos_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
   };
 }
 
@@ -27,10 +29,24 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
   graphics_draw_line(ctx, p1, p2);
 }
 
-static void draw_clock_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
-  for (int hour = 0; hour < 12; hour++) {
-    int32_t offset = hour * TRIG_MAX_ANGLE / 24;
-    draw_rotating_line(ctx, hour_pivot(center, r, hour), r / 2, angle + offset);
+static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+  for (int i = 0; i < 12; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 24;
+    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, angle + offset);
+  }
+}
+
+static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+  for (int i = 0; i < 60; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 120;
+    draw_rotating_line(ctx, mark_pivot(center, r * 5 / 8, i, 60), r / 4, angle + offset);
+  }
+}
+
+static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+  for (int i = 0; i < 60; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 120;
+    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, angle + offset);
   }
 }
 
@@ -46,11 +62,17 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_width(ctx, 2);
   graphics_draw_circle(ctx, center, radius - 2);
 
-  draw_clock_lines(ctx, center, radius - 2, s_angle);
+  draw_inner_lines(ctx, center, radius - 2, s_inner_angle);
+  draw_middle_lines(ctx, center, radius - 2, s_middle_angle);
+  draw_rim_lines(ctx, center, radius - 2, s_outer_angle);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
+  s_outer_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
+  int32_t hour_secs = tick_time->tm_min * 60 + tick_time->tm_sec;
+  s_middle_angle = hour_secs * (TRIG_MAX_ANGLE / 2) / 3600;
+  int32_t per_hour = TRIG_MAX_ANGLE / 24;
+  s_inner_angle = tick_time->tm_hour * per_hour + hour_secs * per_hour / 3600;
   strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
   text_layer_set_text(s_time_layer, s_time_buf);
   if (s_canvas_layer) {
