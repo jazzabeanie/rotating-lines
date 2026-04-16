@@ -4,6 +4,7 @@
 #define PERSIST_KEY_LINE_COLOR 2
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
+#define SMOOTH_ROTATION_DURATION_MS 3000
 
 static Window *s_window;
 static Layer *s_canvas_layer;
@@ -15,8 +16,9 @@ static int32_t s_middle_angle;
 static int32_t s_outer_angle;
 // static char s_time_buf[12];
 
-static bool s_smooth_rotation = true;
+static bool s_smooth_rotation = false;
 static AppTimer *s_smooth_timer;
+static AppTimer *s_smooth_stop_timer;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -101,9 +103,19 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
   bool clear_of_minute = !show_minute || wrap_diff(second, minute, 60) >= 3;
   if (clear_of_hour && clear_of_minute) {
     int32_t s_mark_angle = second * TRIG_MAX_ANGLE / 60;
-    snprintf(buf, sizeof(buf), "%d", second);
+    snprintf(buf, sizeof(buf), "%02d", second);
     draw_marker_text(ctx, center, dist, s_mark_angle, buf, FONT_KEY_GOTHIC_14);
   }
+}
+
+static void draw_battery(GContext *ctx, GPoint center) {
+  BatteryChargeState state = battery_state_service_peek();
+  char buf[8];
+  snprintf(buf, sizeof(buf), "%d%%", state.charge_percent);
+  graphics_context_set_text_color(ctx, s_line_color);
+  GRect rect = GRect(center.x - 28, center.y - 14, 56, 24);
+  graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                     rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 }
 
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
@@ -123,6 +135,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   draw_middle_lines(ctx, center, r, s_middle_angle);
   draw_rim_lines(ctx, center, r, s_outer_angle);
   draw_time_markers(ctx, center, r);
+  draw_battery(ctx, center);
 }
 
 static void update_angles(void) {
@@ -159,6 +172,24 @@ static void smooth_rotation_tick(void *data) {
   if (!s_smooth_rotation) return;
   update_angles();
   s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+}
+
+static void smooth_rotation_stop(void *data) {
+  s_smooth_stop_timer = NULL;
+  s_smooth_rotation = false;
+}
+
+static void trigger_smooth_rotation(void) {
+  start_smooth_rotation();
+  if (s_smooth_stop_timer) {
+    app_timer_reschedule(s_smooth_stop_timer, SMOOTH_ROTATION_DURATION_MS);
+  } else {
+    s_smooth_stop_timer = app_timer_register(SMOOTH_ROTATION_DURATION_MS, smooth_rotation_stop, NULL);
+  }
+}
+
+static void tap_handler(AccelAxisType axis, int32_t direction) {
+  trigger_smooth_rotation();
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -232,10 +263,7 @@ static void init(void) {
   app_message_open(64, 64);
 
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
-
-  if (s_smooth_rotation) {
-    start_smooth_rotation();
-  }
+  accel_tap_service_subscribe(tap_handler);
 }
 
 static void deinit(void) {

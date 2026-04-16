@@ -13,15 +13,19 @@ if [ -z "$CONDA_DEFAULT_ENV" ]; then
   conda activate "$repo_root/conda-env"
 fi
 
-pebble build
-pebble install --emulator basalt
+timeout 60 pebble build
+timeout 60 pebble install --emulator basalt \
+  || { pebble kill; timeout 60 pebble install --emulator basalt; } \
+  || { pebble kill; pebble wipe; timeout 60 pebble install --emulator basalt; }
 
 mkdir -p screenshots
-for i in $(seq 1 15); do
-  pebble screenshot --emulator basalt "screenshots/basalt-$(printf '%02d' $i).png"
-  [ "$i" -lt 15 ] && sleep 1
-done
+timeout 60 bash -c '
+  for i in $(seq 1 15); do
+    pebble screenshot --emulator basalt "screenshots/basalt-$(printf "%02d" $i).png" || exit 1
+    [ "$i" -lt 15 ] && sleep 1
+  done
+' || echo "screenshot loop exceeded 60s, continuing"
 
-git add screenshots/basalt-*.png
+git add screenshots/basalt-*.png 2>/dev/null || true
 
 pebble kill
