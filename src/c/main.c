@@ -42,6 +42,13 @@ static void draw_outer_lines(GContext *ctx, GPoint center, int32_t r, int32_t an
   }
 }
 
+static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+  for (int i = 0; i < 60; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 120;
+    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, angle + offset);
+  }
+}
+
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -56,6 +63,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
   draw_inner_lines(ctx, center, radius - 2, s_inner_angle);
   draw_outer_lines(ctx, center, radius - 2, s_outer_angle);
+  draw_rim_lines(ctx, center, radius - 2, s_outer_angle);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
