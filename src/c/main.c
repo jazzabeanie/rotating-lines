@@ -95,7 +95,7 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
   bool show_minute = wrap_diff(minute, hour_pos, 60) >= 3;
   if (show_minute) {
     int32_t m_angle = minute * TRIG_MAX_ANGLE / 60;
-    snprintf(buf, sizeof(buf), "%d", minute);
+    snprintf(buf, sizeof(buf), "%02d", minute);
     draw_marker_text(ctx, center, dist, m_angle, buf, FONT_KEY_GOTHIC_14_BOLD);
   }
 
