@@ -5,13 +5,13 @@
 
 static Window *s_window;
 static Layer *s_canvas_layer;
-static TextLayer *s_time_layer;
+// static TextLayer *s_time_layer;
 static GColor s_bg_color;
 static GColor s_line_color;
 static int32_t s_inner_angle;
 static int32_t s_middle_angle;
 static int32_t s_outer_angle;
-static char s_time_buf[12];
+// static char s_time_buf[12];
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -50,21 +50,74 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angl
   }
 }
 
+static void draw_marker_text(GContext *ctx, GPoint center, int32_t dist, int32_t mark_angle, const char *text, const char *font_key) {
+  GPoint pos = {
+    .x = center.x + sin_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+    .y = center.y - cos_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+  };
+  GRect rect = GRect(pos.x - 14, pos.y - 12, 28, 20);
+  graphics_draw_text(ctx, text, fonts_get_system_font(font_key),
+                     rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+}
+
+static int wrap_diff(int a, int b, int modulus) {
+  int d = a - b;
+  if (d < 0) d = -d;
+  if (d > modulus / 2) d = modulus - d;
+  return d;
+}
+
+static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
+  int hour = t->tm_hour % 12;
+  if (hour == 0) hour = 12;
+  int minute = t->tm_min;
+  int second = t->tm_sec;
+
+  int32_t dist = r_circle + 10;
+  char buf[4];
+
+  graphics_context_set_text_color(ctx, s_line_color);
+
+  int hour_pos = (hour % 12) * 5;
+  int32_t h_angle = hour_pos * TRIG_MAX_ANGLE / 60;
+  snprintf(buf, sizeof(buf), "%d", hour);
+  draw_marker_text(ctx, center, dist, h_angle, buf, FONT_KEY_GOTHIC_14_BOLD);
+
+  bool show_minute = wrap_diff(minute, hour_pos, 60) >= 3;
+  if (show_minute) {
+    int32_t m_angle = minute * TRIG_MAX_ANGLE / 60;
+    snprintf(buf, sizeof(buf), "%d", minute);
+    draw_marker_text(ctx, center, dist, m_angle, buf, FONT_KEY_GOTHIC_14_BOLD);
+  }
+
+  bool clear_of_hour = wrap_diff(second, hour_pos, 60) >= 3;
+  bool clear_of_minute = !show_minute || wrap_diff(second, minute, 60) >= 3;
+  if (clear_of_hour && clear_of_minute) {
+    int32_t s_mark_angle = second * TRIG_MAX_ANGLE / 60;
+    snprintf(buf, sizeof(buf), "%d", second);
+    draw_marker_text(ctx, center, dist, s_mark_angle, buf, FONT_KEY_GOTHIC_14);
+  }
+}
+
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
   uint16_t radius = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 2;
+  int32_t r = radius - 14;
 
   graphics_context_set_fill_color(ctx, s_bg_color);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   graphics_context_set_stroke_color(ctx, s_line_color);
   graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, center, radius - 2);
+  // graphics_draw_circle(ctx, center, r);
 
-  draw_inner_lines(ctx, center, radius - 2, s_inner_angle);
-  draw_middle_lines(ctx, center, radius - 2, s_middle_angle);
-  draw_rim_lines(ctx, center, radius - 2, s_outer_angle);
+  draw_inner_lines(ctx, center, r, s_inner_angle);
+  draw_middle_lines(ctx, center, r, s_middle_angle);
+  draw_rim_lines(ctx, center, r, s_outer_angle);
+  draw_time_markers(ctx, center, r);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -73,8 +126,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_middle_angle = hour_secs * (TRIG_MAX_ANGLE / 2) / 3600;
   int32_t per_hour = TRIG_MAX_ANGLE / 24;
   s_inner_angle = tick_time->tm_hour * per_hour + hour_secs * per_hour / 3600;
-  strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
-  text_layer_set_text(s_time_layer, s_time_buf);
+  // strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
+  // text_layer_set_text(s_time_layer, s_time_buf);
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
   }
@@ -118,17 +171,17 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_canvas_layer, canvas_update_proc);
   layer_add_child(window_layer, s_canvas_layer);
 
-  GRect time_rect = GRect(0, bounds.size.h - 30, bounds.size.w, 30);
-  s_time_layer = text_layer_create(time_rect);
-  text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, s_line_color);
-  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
+  // GRect time_rect = GRect(0, bounds.size.h - 30, bounds.size.w, 30);
+  // s_time_layer = text_layer_create(time_rect);
+  // text_layer_set_background_color(s_time_layer, GColorClear);
+  // text_layer_set_text_color(s_time_layer, s_line_color);
+  // text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  // text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
+  // layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 }
 
 static void window_unload(Window *window) {
-  text_layer_destroy(s_time_layer);
+  // text_layer_destroy(s_time_layer);
   layer_destroy(s_canvas_layer);
 }
 
