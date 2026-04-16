@@ -17,9 +17,9 @@ pebble build
 pebble install --emulator basalt
 
 mkdir -p screenshots
-for i in 1 2 3 4 5; do
+for i in $(seq 1 15); do
   pebble screenshot --emulator basalt "screenshots/basalt-$i.png"
-  [ "$i" -lt 5 ] && sleep 1
+  [ "$i" -lt 15 ] && sleep 1
 done
 
 git add screenshots/basalt-*.png
