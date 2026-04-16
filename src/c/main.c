@@ -112,11 +112,11 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
   graphics_context_set_stroke_color(ctx, s_line_color);
   graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, center, r);
+  // graphics_draw_circle(ctx, center, r);
 
   draw_inner_lines(ctx, center, r, s_inner_angle);
   draw_middle_lines(ctx, center, r, s_middle_angle);
-  // draw_rim_lines(ctx, center, r, s_outer_angle);
+  draw_rim_lines(ctx, center, r, s_outer_angle);
   draw_time_markers(ctx, center, r);
 }
 
