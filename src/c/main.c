@@ -11,11 +11,11 @@ static GColor s_line_color;
 static int32_t s_angle;
 static char s_time_buf[12];
 
-static GPoint hour_pivot(GPoint center, int32_t dist, int hour) {
-  int32_t hour_angle = hour * TRIG_MAX_ANGLE / 12;
+static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
+  int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
   return (GPoint){
-    .x = center.x + sin_lookup(hour_angle) * dist / TRIG_MAX_RATIO,
-    .y = center.y - cos_lookup(hour_angle) * dist / TRIG_MAX_RATIO,
+    .x = center.x + sin_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
+    .y = center.y - cos_lookup(mark_angle) * dist / TRIG_MAX_RATIO,
   };
 }
 
@@ -28,16 +28,16 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 }
 
 static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
-  for (int hour = 0; hour < 12; hour++) {
-    int32_t offset = hour * TRIG_MAX_ANGLE / 24;
-    draw_rotating_line(ctx, hour_pivot(center, r / 4, hour), r / 2, angle + offset);
+  for (int i = 0; i < 12; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 24;
+    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, angle + offset);
   }
 }
 
 static void draw_outer_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
-  for (int hour = 0; hour < 12; hour++) {
-    int32_t offset = hour * TRIG_MAX_ANGLE / 24;
-    draw_rotating_line(ctx, hour_pivot(center, r * 5 / 8, hour), r / 4, angle + offset);
+  for (int i = 0; i < 60; i++) {
+    int32_t offset = i * TRIG_MAX_ANGLE / 120;
+    draw_rotating_line(ctx, mark_pivot(center, r * 5 / 8, i, 60), r / 4, angle + offset);
   }
 }
 
