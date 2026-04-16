@@ -14,8 +14,8 @@ static char s_time_buf[12];
 static GPoint hour_pivot(GPoint center, int32_t r, int hour) {
   int32_t hour_angle = hour * TRIG_MAX_ANGLE / 12;
   return (GPoint){
-    .x = center.x + sin_lookup(hour_angle) * (r / 2) / TRIG_MAX_RATIO,
-    .y = center.y - cos_lookup(hour_angle) * (r / 2) / TRIG_MAX_RATIO,
+    .x = center.x + sin_lookup(hour_angle) * (r / 4) / TRIG_MAX_RATIO,
+    .y = center.y - cos_lookup(hour_angle) * (r / 4) / TRIG_MAX_RATIO,
   };
 }
 
@@ -30,7 +30,7 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 static void draw_clock_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
   for (int hour = 0; hour < 12; hour++) {
     int32_t offset = hour * TRIG_MAX_ANGLE / 24;
-    draw_rotating_line(ctx, hour_pivot(center, r, hour), r, angle + offset);
+    draw_rotating_line(ctx, hour_pivot(center, r, hour), r / 2, angle + offset);
   }
 }
 
