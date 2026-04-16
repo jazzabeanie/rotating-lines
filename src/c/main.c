@@ -5,9 +5,11 @@
 
 static Window *s_window;
 static Layer *s_canvas_layer;
+static TextLayer *s_time_layer;
 static GColor s_bg_color;
 static GColor s_line_color;
 static int32_t s_angle;
+static char s_time_buf[12];
 
 static GPoint hour_pivot(GPoint center, int32_t r, int hour) {
   int32_t hour_angle = hour * TRIG_MAX_ANGLE / 12;
@@ -48,6 +50,8 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   s_angle = tick_time->tm_sec * (TRIG_MAX_ANGLE / 2) / 60;
+  strftime(s_time_buf, sizeof(s_time_buf), "%H:%M:%S", tick_time);
+  text_layer_set_text(s_time_layer, s_time_buf);
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
   }
@@ -90,9 +94,18 @@ static void window_load(Window *window) {
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, canvas_update_proc);
   layer_add_child(window_layer, s_canvas_layer);
+
+  GRect time_rect = GRect(0, bounds.size.h - 30, bounds.size.w, 30);
+  s_time_layer = text_layer_create(time_rect);
+  text_layer_set_background_color(s_time_layer, GColorClear);
+  text_layer_set_text_color(s_time_layer, s_line_color);
+  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 }
 
 static void window_unload(Window *window) {
+  text_layer_destroy(s_time_layer);
   layer_destroy(s_canvas_layer);
 }
 
