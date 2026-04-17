@@ -28,10 +28,16 @@ static bool s_line_rotation = true;
 static bool smooth_enabled(void);
 
 static int32_t phase_stroke_width(int32_t d, int32_t one_unit) {
+  int32_t t = one_unit / 3;
   if (d < one_unit) {
-    return 1 + 2 * (one_unit - d) / one_unit;
+    if (d < t)             return 3;
+    else if (d < 2 * t)   return 2;
+    else                   return 1;
   } else if (d >= TRIG_MAX_ANGLE - one_unit) {
-    return 3 - 2 * (TRIG_MAX_ANGLE - d) / one_unit;
+    int32_t d_out = TRIG_MAX_ANGLE - d;
+    if (d_out < t)         return 3;
+    else if (d_out < 2*t)  return 2;
+    else                   return 1;
   }
   return 1;
 }
