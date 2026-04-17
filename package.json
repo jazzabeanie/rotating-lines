@@ -27,7 +27,8 @@
     "capabilities": ["configurable"],
     "messageKeys": [
       "BG_COLOR",
-      "LINE_COLOR"
+      "LINE_COLOR",
+      "SMOOTH_THRESHOLD"
     ]
   }
 }

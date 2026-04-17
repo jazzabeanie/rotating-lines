@@ -2,6 +2,7 @@
 
 #define PERSIST_KEY_BG_COLOR 1
 #define PERSIST_KEY_LINE_COLOR 2
+#define PERSIST_KEY_SMOOTH_THRESHOLD 3
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -16,6 +17,7 @@ static int32_t s_outer_angle;
 // static char s_time_buf[12];
 
 static AppTimer *s_smooth_timer;
+static int s_smooth_threshold = 30;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -156,9 +158,30 @@ static void update_angles(void) {
   }
 }
 
+static void smooth_rotation_tick(void *data);
+
+static bool smooth_enabled(void) {
+  BatteryChargeState state = battery_state_service_peek();
+  return state.charge_percent >= s_smooth_threshold;
+}
+
+static void ensure_smooth_timer(void) {
+  if (smooth_enabled() && !s_smooth_timer) {
+    s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+  }
+}
+
 static void smooth_rotation_tick(void *data) {
+  s_smooth_timer = NULL;
   update_angles();
-  s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+  if (smooth_enabled()) {
+    s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+  }
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_angles();
+  ensure_smooth_timer();
 }
 
 static void load_settings(void) {
@@ -169,6 +192,9 @@ static void load_settings(void) {
   }
   if (persist_exists(PERSIST_KEY_LINE_COLOR)) {
     s_line_color = GColorFromHEX(persist_read_int(PERSIST_KEY_LINE_COLOR));
+  }
+  if (persist_exists(PERSIST_KEY_SMOOTH_THRESHOLD)) {
+    s_smooth_threshold = persist_read_int(PERSIST_KEY_SMOOTH_THRESHOLD);
   }
 }
 
@@ -185,6 +211,12 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     int hex = line->value->int32;
     s_line_color = GColorFromHEX(hex);
     persist_write_int(PERSIST_KEY_LINE_COLOR, hex);
+  }
+  Tuple *thresh = dict_find(iter, MESSAGE_KEY_SMOOTH_THRESHOLD);
+  if (thresh) {
+    s_smooth_threshold = thresh->value->int32;
+    persist_write_int(PERSIST_KEY_SMOOTH_THRESHOLD, s_smooth_threshold);
+    ensure_smooth_timer();
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
@@ -225,9 +257,10 @@ static void init(void) {
   window_stack_push(s_window, true);
 
   app_message_register_inbox_received(inbox_received_handler);
-  app_message_open(64, 64);
+  app_message_open(128, 64);
 
-  s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  ensure_smooth_timer();
 }
 
 static void deinit(void) {
