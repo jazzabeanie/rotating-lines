@@ -147,6 +147,17 @@ static void draw_battery(GContext *ctx, GRect bounds) {
                      text_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 }
 
+static void draw_date(GContext *ctx, GRect bounds) {
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
+  char buf[8];
+  strftime(buf, sizeof(buf), "%b %d", t);
+  graphics_context_set_text_color(ctx, s_line_color);
+  GRect rect = GRect(bounds.size.w - 50, bounds.size.h - 20, 48, 20);
+  graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                     rect, GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+}
+
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -174,6 +185,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   }
   draw_time_markers(ctx, center, r, show_seconds);
   draw_battery(ctx, bounds);
+  draw_date(ctx, bounds);
 }
 
 static void update_angles(void) {
