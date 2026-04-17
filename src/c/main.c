@@ -18,8 +18,8 @@ static int32_t s_outer_angle;
 // static char s_time_buf[12];
 
 static AppTimer *s_smooth_timer;
-static int s_smooth_threshold = 30;
-static int s_seconds_threshold = 0;
+static int s_smooth_threshold = 80;
+static int s_seconds_threshold = 60;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
