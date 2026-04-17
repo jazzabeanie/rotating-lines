@@ -25,6 +25,8 @@ static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
 static bool s_line_rotation = true;
 
+static bool smooth_enabled(void);
+
 static int32_t phase_stroke_width(int32_t d, int32_t one_unit) {
   if (d < one_unit) {
     return 1 + 2 * (one_unit - d) / one_unit;
@@ -64,11 +66,10 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 11 / 12);
       }
       line_angle = mark_angle + rot;
-      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_hour));
     } else {
       line_angle = inner_angle + i * TRIG_MAX_ANGLE / 24;
-      graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     }
+    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, line_angle);
   }
 }
@@ -89,11 +90,10 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
       }
       line_angle = mark_angle + rot;
-      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_min));
     } else {
       line_angle = middle_angle + i * TRIG_MAX_ANGLE / 120;
-      graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     }
+    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, line_angle);
   }
 }
@@ -112,7 +112,7 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
       }
       line_angle = mark_angle + rot;
-      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_sec));
+      graphics_context_set_stroke_width(ctx, smooth_enabled() ? phase_stroke_width(d, one_sec) : (i == highlight ? 2 : 1));
     } else {
       line_angle = outer_angle + i * TRIG_MAX_ANGLE / 120;
       graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
@@ -243,8 +243,6 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   draw_battery(ctx, bounds);
   draw_date(ctx, bounds);
 }
-
-static bool smooth_enabled(void);
 
 static void update_angles(void) {
   time_t now;
