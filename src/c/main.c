@@ -87,7 +87,7 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
   int hour_pos = (hour % 12) * 5;
   int32_t h_angle = hour_pos * TRIG_MAX_ANGLE / 60;
   snprintf(buf, sizeof(buf), "%d", hour);
-  draw_marker_text(ctx, center, dist, h_angle, buf, FONT_KEY_GOTHIC_14_BOLD);
+  draw_marker_text(ctx, center, dist, h_angle, buf, FONT_KEY_GOTHIC_18_BOLD);
 
   bool show_minute = wrap_diff(minute, hour_pos, 60) >= 3;
   if (show_minute) {
@@ -105,14 +105,14 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
   }
 }
 
-static void draw_battery(GContext *ctx, GPoint center) {
+static void draw_battery(GContext *ctx, GRect bounds) {
   BatteryChargeState state = battery_state_service_peek();
   char buf[8];
   snprintf(buf, sizeof(buf), "%d%%", state.charge_percent);
   graphics_context_set_text_color(ctx, s_line_color);
-  GRect rect = GRect(center.x - 28, center.y - 14, 56, 24);
-  graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                     rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  GRect rect = GRect(2, bounds.size.h - 20, 40, 20);
+  graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                     rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 }
 
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
@@ -130,9 +130,10 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
   draw_inner_lines(ctx, center, r, s_inner_angle);
   draw_middle_lines(ctx, center, r, s_middle_angle);
+  graphics_context_set_stroke_width(ctx, 1);
   draw_rim_lines(ctx, center, r, s_outer_angle);
   draw_time_markers(ctx, center, r);
-  draw_battery(ctx, center);
+  draw_battery(ctx, bounds);
 }
 
 static void update_angles(void) {
