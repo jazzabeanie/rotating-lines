@@ -25,6 +25,15 @@ static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
 static bool s_line_rotation = true;
 
+static int32_t phase_stroke_width(int32_t d, int32_t one_unit) {
+  if (d < one_unit) {
+    return 1 + 2 * (one_unit - d) / one_unit;
+  } else if (d >= TRIG_MAX_ANGLE - one_unit) {
+    return 3 - 2 * (TRIG_MAX_ANGLE - d) / one_unit;
+  }
+  return 1;
+}
+
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
   return (GPoint){
@@ -44,7 +53,6 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
   int32_t one_hour = TRIG_MAX_ANGLE / 12;
   for (int i = 0; i < 12; i++) {
-    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 12;
     int32_t line_angle;
     if (s_line_rotation) {
@@ -56,8 +64,10 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 11 / 12);
       }
       line_angle = mark_angle + rot;
+      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_hour));
     } else {
       line_angle = inner_angle + i * TRIG_MAX_ANGLE / 24;
+      graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     }
     draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, line_angle);
   }
@@ -68,7 +78,6 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
   int32_t length = extended ? r / 2 : r / 4;
   int32_t one_min = TRIG_MAX_ANGLE / 60;
   for (int i = 0; i < 60; i++) {
-    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
     int32_t line_angle;
     if (s_line_rotation) {
@@ -80,8 +89,10 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
       }
       line_angle = mark_angle + rot;
+      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_min));
     } else {
       line_angle = middle_angle + i * TRIG_MAX_ANGLE / 120;
+      graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     }
     draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, line_angle);
   }
@@ -90,7 +101,6 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
 static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t outer_angle, int highlight) {
   int32_t one_sec = TRIG_MAX_ANGLE / 60;
   for (int i = 0; i < 60; i++) {
-    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
     int32_t line_angle;
     if (s_line_rotation) {
@@ -102,8 +112,10 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
       }
       line_angle = mark_angle + rot;
+      graphics_context_set_stroke_width(ctx, phase_stroke_width(d, one_sec));
     } else {
       line_angle = outer_angle + i * TRIG_MAX_ANGLE / 120;
+      graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     }
     draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, line_angle);
   }
