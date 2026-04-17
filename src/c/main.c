@@ -232,11 +232,15 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   draw_date(ctx, bounds);
 }
 
+static bool smooth_enabled(void);
+
 static void update_angles(void) {
   time_t now;
   uint16_t ms;
   time_ms(&now, &ms);
   struct tm *t = localtime(&now);
+
+  if (!smooth_enabled()) ms = 0;
 
   int64_t sec_ms = (int64_t)t->tm_sec * 1000 + ms;
   s_outer_angle = (int32_t)(sec_ms * (TRIG_MAX_ANGLE / 2) / 60000);
