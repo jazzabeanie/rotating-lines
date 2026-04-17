@@ -57,11 +57,23 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t a
   }
 }
 
-static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
+static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t outer_angle, int highlight) {
+  // outer_angle spans 0..TRIG_MAX_ANGLE/2 over 60s; scale by 2 for full-circle mark_angle space
+  int32_t one_sec = TRIG_MAX_ANGLE / 60;
   for (int i = 0; i < 60; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
-    int32_t offset = i * TRIG_MAX_ANGLE / 120;
-    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, angle + offset);
+    int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
+    // d: how far ahead this line is from the current second, in full-circle angle units [0, TRIG_MAX_ANGLE)
+    int32_t d = ((mark_angle - outer_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
+    int32_t rot;
+    if (d < one_sec) {
+      // current second: smoothly sweeps 0° (radial) → 90° (tangential)
+      rot = (TRIG_MAX_ANGLE / 4) * d / one_sec;
+    } else {
+      // lines ahead: 90° (tangential) → ~0° (nearly radial) as offset grows from 1 to 59 seconds
+      rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+    }
+    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, mark_angle + rot);
   }
 }
 
