@@ -35,22 +35,25 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
   graphics_draw_line(ctx, p1, p2);
 }
 
-static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
   for (int i = 0; i < 12; i++) {
+    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t offset = i * TRIG_MAX_ANGLE / 24;
     draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, angle + offset);
   }
 }
 
-static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
   for (int i = 0; i < 60; i++) {
+    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t offset = i * TRIG_MAX_ANGLE / 120;
     draw_rotating_line(ctx, mark_pivot(center, r * 5 / 8, i, 60), r / 4, angle + offset);
   }
 }
 
-static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle) {
+static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
   for (int i = 0; i < 60; i++) {
+    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t offset = i * TRIG_MAX_ANGLE / 120;
     draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, angle + offset);
   }
@@ -127,13 +130,16 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   graphics_context_set_stroke_color(ctx, s_line_color);
-  graphics_context_set_stroke_width(ctx, 2);
-  // graphics_draw_circle(ctx, center, r);
 
-  draw_inner_lines(ctx, center, r, s_inner_angle);
-  draw_middle_lines(ctx, center, r, s_middle_angle);
-  graphics_context_set_stroke_width(ctx, 1);
-  draw_rim_lines(ctx, center, r, s_outer_angle);
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
+  int hour_idx = t->tm_hour % 12;
+  int minute_idx = t->tm_min;
+  int second_idx = t->tm_sec;
+
+  draw_inner_lines(ctx, center, r, s_inner_angle, hour_idx);
+  draw_middle_lines(ctx, center, r, s_middle_angle, minute_idx);
+  draw_rim_lines(ctx, center, r, s_outer_angle, second_idx);
   draw_time_markers(ctx, center, r);
   draw_battery(ctx, bounds);
 }
