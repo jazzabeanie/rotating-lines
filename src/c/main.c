@@ -3,6 +3,7 @@
 #define PERSIST_KEY_BG_COLOR 1
 #define PERSIST_KEY_LINE_COLOR 2
 #define PERSIST_KEY_SMOOTH_THRESHOLD 3
+#define PERSIST_KEY_SECONDS_THRESHOLD 4
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -18,6 +19,7 @@ static int32_t s_outer_angle;
 
 static AppTimer *s_smooth_timer;
 static int s_smooth_threshold = 30;
+static int s_seconds_threshold = 0;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -43,11 +45,13 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t an
   }
 }
 
-static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
+static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight, bool extended) {
+  int32_t pivot_dist = extended ? r * 3 / 4 : r * 5 / 8;
+  int32_t length = extended ? r / 2 : r / 4;
   for (int i = 0; i < 60; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t offset = i * TRIG_MAX_ANGLE / 120;
-    draw_rotating_line(ctx, mark_pivot(center, r * 5 / 8, i, 60), r / 4, angle + offset);
+    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, angle + offset);
   }
 }
 
@@ -76,7 +80,7 @@ static int wrap_diff(int a, int b, int modulus) {
   return d;
 }
 
-static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
+static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle, bool show_seconds) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
   int hour = t->tm_hour % 12;
@@ -101,12 +105,14 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle) {
     draw_marker_text(ctx, center, dist, m_angle, buf, FONT_KEY_GOTHIC_14_BOLD);
   }
 
-  bool clear_of_hour = wrap_diff(second, hour_pos, 60) >= 3;
-  bool clear_of_minute = !show_minute || wrap_diff(second, minute, 60) >= 3;
-  if (clear_of_hour && clear_of_minute) {
-    int32_t s_mark_angle = second * TRIG_MAX_ANGLE / 60;
-    snprintf(buf, sizeof(buf), "%02d", second);
-    draw_marker_text(ctx, center, dist, s_mark_angle, buf, FONT_KEY_GOTHIC_14);
+  if (show_seconds) {
+    bool clear_of_hour = wrap_diff(second, hour_pos, 60) >= 3;
+    bool clear_of_minute = !show_minute || wrap_diff(second, minute, 60) >= 3;
+    if (clear_of_hour && clear_of_minute) {
+      int32_t s_mark_angle = second * TRIG_MAX_ANGLE / 60;
+      snprintf(buf, sizeof(buf), "%02d", second);
+      draw_marker_text(ctx, center, dist, s_mark_angle, buf, FONT_KEY_GOTHIC_14);
+    }
   }
 }
 
@@ -137,10 +143,15 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   int minute_idx = t->tm_min;
   int second_idx = t->tm_sec;
 
+  BatteryChargeState bat = battery_state_service_peek();
+  bool show_seconds = s_seconds_threshold == 0 || bat.charge_percent >= s_seconds_threshold;
+
   draw_inner_lines(ctx, center, r, s_inner_angle, hour_idx);
-  draw_middle_lines(ctx, center, r, s_middle_angle, minute_idx);
-  draw_rim_lines(ctx, center, r, s_outer_angle, second_idx);
-  draw_time_markers(ctx, center, r);
+  draw_middle_lines(ctx, center, r, s_middle_angle, minute_idx, !show_seconds);
+  if (show_seconds) {
+    draw_rim_lines(ctx, center, r, s_outer_angle, second_idx);
+  }
+  draw_time_markers(ctx, center, r, show_seconds);
   draw_battery(ctx, bounds);
 }
 
@@ -202,6 +213,9 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_SMOOTH_THRESHOLD)) {
     s_smooth_threshold = persist_read_int(PERSIST_KEY_SMOOTH_THRESHOLD);
   }
+  if (persist_exists(PERSIST_KEY_SECONDS_THRESHOLD)) {
+    s_seconds_threshold = persist_read_int(PERSIST_KEY_SECONDS_THRESHOLD);
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -223,6 +237,11 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     s_smooth_threshold = thresh->value->int32;
     persist_write_int(PERSIST_KEY_SMOOTH_THRESHOLD, s_smooth_threshold);
     ensure_smooth_timer();
+  }
+  Tuple *sec_thresh = dict_find(iter, MESSAGE_KEY_SECONDS_THRESHOLD);
+  if (sec_thresh) {
+    s_seconds_threshold = sec_thresh->value->int32;
+    persist_write_int(PERSIST_KEY_SECONDS_THRESHOLD, s_seconds_threshold);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
