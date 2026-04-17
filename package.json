@@ -31,7 +31,8 @@
       "SMOOTH_THRESHOLD",
       "SECONDS_THRESHOLD",
       "BATTERY_SHOW_THRESHOLD",
-      "LINE_ROTATION"
+      "LINE_ROTATION",
+      "SHOW_MARKERS"
     ]
   }
 }

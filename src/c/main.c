@@ -6,6 +6,7 @@
 #define PERSIST_KEY_SECONDS_THRESHOLD 4
 #define PERSIST_KEY_BATTERY_SHOW_THRESHOLD 5
 #define PERSIST_KEY_LINE_ROTATION 6
+#define PERSIST_KEY_SHOW_MARKERS 7
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -24,6 +25,7 @@ static int s_smooth_threshold = 80;
 static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
 static bool s_line_rotation = true;
+static bool s_show_markers = true;
 
 static bool smooth_enabled(void);
 
@@ -249,7 +251,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   if (show_seconds) {
     draw_rim_lines(ctx, center, r, s_outer_angle, second_idx);
   }
-  draw_time_markers(ctx, center, r, show_seconds);
+  if (s_show_markers) draw_time_markers(ctx, center, r, show_seconds);
   draw_battery(ctx, bounds);
   draw_date(ctx, bounds);
 }
@@ -323,6 +325,9 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_LINE_ROTATION)) {
     s_line_rotation = persist_read_int(PERSIST_KEY_LINE_ROTATION) != 0;
   }
+  if (persist_exists(PERSIST_KEY_SHOW_MARKERS)) {
+    s_show_markers = persist_read_int(PERSIST_KEY_SHOW_MARKERS) != 0;
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -359,6 +364,11 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (rot) {
     s_line_rotation = rot->value->int32 != 0;
     persist_write_int(PERSIST_KEY_LINE_ROTATION, rot->value->int32);
+  }
+  Tuple *markers = dict_find(iter, MESSAGE_KEY_SHOW_MARKERS);
+  if (markers) {
+    s_show_markers = markers->value->int32 != 0;
+    persist_write_int(PERSIST_KEY_SHOW_MARKERS, markers->value->int32);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
