@@ -4,7 +4,6 @@
 #define PERSIST_KEY_LINE_COLOR 2
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
-#define SMOOTH_ROTATION_DURATION_MS 3000
 
 static Window *s_window;
 static Layer *s_canvas_layer;
@@ -16,9 +15,7 @@ static int32_t s_middle_angle;
 static int32_t s_outer_angle;
 // static char s_time_buf[12];
 
-static bool s_smooth_rotation = false;
 static AppTimer *s_smooth_timer;
-static AppTimer *s_smooth_stop_timer;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -158,53 +155,9 @@ static void update_angles(void) {
   }
 }
 
-static void smooth_rotation_tick(void *data);
-
-static void start_smooth_rotation(void) {
-  s_smooth_rotation = true;
-  if (!s_smooth_timer) {
-    s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
-  }
-}
-
 static void smooth_rotation_tick(void *data) {
-  s_smooth_timer = NULL;
-  if (!s_smooth_rotation) return;
   update_angles();
   s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
-}
-
-static void smooth_rotation_stop(void *data) {
-  s_smooth_stop_timer = NULL;
-  s_smooth_rotation = false;
-}
-
-static void trigger_smooth_rotation(void) {
-  start_smooth_rotation();
-  if (s_smooth_stop_timer) {
-    app_timer_reschedule(s_smooth_stop_timer, SMOOTH_ROTATION_DURATION_MS);
-  } else {
-    s_smooth_stop_timer = app_timer_register(SMOOTH_ROTATION_DURATION_MS, smooth_rotation_stop, NULL);
-  }
-}
-
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-  trigger_smooth_rotation();
-}
-
-static void click_handler(ClickRecognizerRef recognizer, void *context) {
-  trigger_smooth_rotation();
-}
-
-static void click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_UP, click_handler);
-  window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, click_handler);
-  window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
-}
-
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_angles();
 }
 
 static void load_settings(void) {
@@ -268,14 +221,12 @@ static void init(void) {
     .load = window_load,
     .unload = window_unload,
   });
-  window_set_click_config_provider(s_window, click_config_provider);
   window_stack_push(s_window, true);
 
   app_message_register_inbox_received(inbox_received_handler);
   app_message_open(64, 64);
 
-  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
-  accel_tap_service_subscribe(tap_handler);
+  s_smooth_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, smooth_rotation_tick, NULL);
 }
 
 static void deinit(void) {
