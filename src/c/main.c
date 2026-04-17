@@ -47,13 +47,21 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t an
   }
 }
 
-static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight, bool extended) {
+static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t middle_angle, int highlight, bool extended) {
   int32_t pivot_dist = extended ? r * 3 / 4 : r * 5 / 8;
   int32_t length = extended ? r / 2 : r / 4;
+  int32_t one_min = TRIG_MAX_ANGLE / 60;
   for (int i = 0; i < 60; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
-    int32_t offset = i * TRIG_MAX_ANGLE / 120;
-    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, angle + offset);
+    int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
+    int32_t d = ((mark_angle - middle_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
+    int32_t rot;
+    if (d < one_min) {
+      rot = (TRIG_MAX_ANGLE / 4) * d / one_min;
+    } else {
+      rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+    }
+    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, mark_angle + rot);
   }
 }
 
