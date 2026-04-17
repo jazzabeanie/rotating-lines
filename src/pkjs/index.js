@@ -18,7 +18,9 @@ var CONFIG_HTML = [
 '<div class="row" style="flex-wrap:wrap"><label for="secthresh" style="width:100%;margin-bottom:8px">Hide seconds below <span id="secval">60</span>% battery (0 = always show)</label><input type="range" id="secthresh" min="0" max="100" step="10" value="60" style="width:100%"></div>',
 '<div class="row" style="flex-wrap:wrap"><label for="batshow" style="width:100%;margin-bottom:8px">Show battery below <span id="batval">50</span>% (0 = never show)</label><input type="range" id="batshow" min="0" max="100" step="10" value="50" style="width:100%"></div>',
 '<div class="row"><label for="linerot">Phase-offset line rotation</label><input type="checkbox" id="linerot" checked style="width:24px;height:24px"></div>',
+'<div class="row"><label for="showdate">Show date</label><input type="checkbox" id="showdate" checked style="width:24px;height:24px"></div>',
 '<div class="row"><label for="showmarkers">Show time markers</label><input type="checkbox" id="showmarkers" checked style="width:24px;height:24px"></div>',
+'<div class="row" id="extendrow" style="display:none"><label for="extendlines">Extend second lines past screen edge</label><input type="checkbox" id="extendlines" style="width:24px;height:24px"></div>',
 '<button id="save">Save</button>',
 '<script>(function(){',
 'var params={};location.search.replace(/^\\?/,"").split("&").forEach(function(p){if(!p)return;var i=p.indexOf("=");params[decodeURIComponent(p.slice(0,i))]=decodeURIComponent(p.slice(i+1));});',
@@ -26,8 +28,9 @@ var CONFIG_HTML = [
 'var smoothEl=document.getElementById("smooth");var svalEl=document.getElementById("sval");smoothEl.addEventListener("input",function(){svalEl.textContent=smoothEl.value;});',
 'var secEl=document.getElementById("secthresh");var secvalEl=document.getElementById("secval");secEl.addEventListener("input",function(){secvalEl.textContent=secEl.value;});',
 'var batEl=document.getElementById("batshow");var batvalEl=document.getElementById("batval");batEl.addEventListener("input",function(){batvalEl.textContent=batEl.value;});',
-'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}if(saved.battery_show_threshold!=null){batEl.value=saved.battery_show_threshold;batvalEl.textContent=saved.battery_show_threshold;}if(saved.line_rotation!=null){document.getElementById("linerot").checked=!!saved.line_rotation;}if(saved.show_markers!=null){document.getElementById("showmarkers").checked=!!saved.show_markers;}}catch(e){}',
-'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10),battery_show_threshold:parseInt(batEl.value,10),line_rotation:document.getElementById("linerot").checked?1:0,show_markers:document.getElementById("showmarkers").checked?1:0};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
+'var markersEl=document.getElementById("showmarkers");var extendRowEl=document.getElementById("extendrow");var extendEl=document.getElementById("extendlines");function updateExtendVisibility(){extendRowEl.style.display=markersEl.checked?"none":"flex";}markersEl.addEventListener("change",updateExtendVisibility);',
+'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}if(saved.battery_show_threshold!=null){batEl.value=saved.battery_show_threshold;batvalEl.textContent=saved.battery_show_threshold;}if(saved.line_rotation!=null){document.getElementById("linerot").checked=!!saved.line_rotation;}if(saved.show_date!=null){document.getElementById("showdate").checked=!!saved.show_date;}if(saved.show_markers!=null){markersEl.checked=!!saved.show_markers;}if(saved.extend_second_lines!=null){extendEl.checked=!!saved.extend_second_lines;}updateExtendVisibility();}catch(e){}',
+'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10),battery_show_threshold:parseInt(batEl.value,10),line_rotation:document.getElementById("linerot").checked?1:0,show_date:document.getElementById("showdate").checked?1:0,show_markers:markersEl.checked?1:0,extend_second_lines:extendEl.checked?1:0};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
 '})();</script></body></html>'
 ].join('');
 
@@ -64,8 +67,14 @@ Pebble.addEventListener('webviewclosed', function (e) {
   if (settings.line_rotation != null) {
     msg.LINE_ROTATION = settings.line_rotation;
   }
+  if (settings.show_date != null) {
+    msg.SHOW_DATE = settings.show_date;
+  }
   if (settings.show_markers != null) {
     msg.SHOW_MARKERS = settings.show_markers;
+  }
+  if (!settings.show_markers && settings.extend_second_lines != null) {
+    msg.EXTEND_SECOND_LINES = settings.extend_second_lines;
   }
   Pebble.sendAppMessage(msg);
 });

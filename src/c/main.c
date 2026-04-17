@@ -7,6 +7,8 @@
 #define PERSIST_KEY_BATTERY_SHOW_THRESHOLD 5
 #define PERSIST_KEY_LINE_ROTATION 6
 #define PERSIST_KEY_SHOW_MARKERS 7
+#define PERSIST_KEY_EXTEND_SECOND_LINES 8
+#define PERSIST_KEY_SHOW_DATE 9
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -26,6 +28,8 @@ static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
 static bool s_line_rotation = true;
 static bool s_show_markers = true;
+static bool s_extend_second_lines = false;
+static bool s_show_date = true;
 
 static bool smooth_enabled(void);
 
@@ -246,14 +250,23 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   BatteryChargeState bat = battery_state_service_peek();
   bool show_seconds = s_seconds_threshold == 0 || bat.charge_percent >= s_seconds_threshold;
 
-  draw_inner_lines(ctx, center, r, s_inner_angle, hour_idx);
-  draw_middle_lines(ctx, center, r, s_middle_angle, minute_idx, !show_seconds);
+  int32_t r_eff;
+  if (!s_show_markers && s_extend_second_lines) {
+    r_eff = radius * 8 / 7;
+  } else if (!s_show_markers || !show_seconds) {
+    r_eff = radius;
+  } else {
+    r_eff = r;
+  }
+
+  draw_inner_lines(ctx, center, r_eff, s_inner_angle, hour_idx);
+  draw_middle_lines(ctx, center, r_eff, s_middle_angle, minute_idx, !show_seconds);
   if (show_seconds) {
-    draw_rim_lines(ctx, center, r, s_outer_angle, second_idx);
+    draw_rim_lines(ctx, center, r_eff, s_outer_angle, second_idx);
   }
   if (s_show_markers) draw_time_markers(ctx, center, r, show_seconds);
   draw_battery(ctx, bounds);
-  draw_date(ctx, bounds);
+  if (s_show_date) draw_date(ctx, bounds);
 }
 
 static void update_angles(void) {
@@ -328,6 +341,12 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_SHOW_MARKERS)) {
     s_show_markers = persist_read_int(PERSIST_KEY_SHOW_MARKERS) != 0;
   }
+  if (persist_exists(PERSIST_KEY_EXTEND_SECOND_LINES)) {
+    s_extend_second_lines = persist_read_int(PERSIST_KEY_EXTEND_SECOND_LINES) != 0;
+  }
+  if (persist_exists(PERSIST_KEY_SHOW_DATE)) {
+    s_show_date = persist_read_int(PERSIST_KEY_SHOW_DATE) != 0;
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -369,6 +388,16 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (markers) {
     s_show_markers = markers->value->int32 != 0;
     persist_write_int(PERSIST_KEY_SHOW_MARKERS, markers->value->int32);
+  }
+  Tuple *extend = dict_find(iter, MESSAGE_KEY_EXTEND_SECOND_LINES);
+  if (extend) {
+    s_extend_second_lines = extend->value->int32 != 0;
+    persist_write_int(PERSIST_KEY_EXTEND_SECOND_LINES, extend->value->int32);
+  }
+  Tuple *show_date = dict_find(iter, MESSAGE_KEY_SHOW_DATE);
+  if (show_date) {
+    s_show_date = show_date->value->int32 != 0;
+    persist_write_int(PERSIST_KEY_SHOW_DATE, show_date->value->int32);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);

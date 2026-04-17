@@ -32,7 +32,9 @@
       "SECONDS_THRESHOLD",
       "BATTERY_SHOW_THRESHOLD",
       "LINE_ROTATION",
-      "SHOW_MARKERS"
+      "SHOW_MARKERS",
+      "EXTEND_SECOND_LINES",
+      "SHOW_DATE"
     ]
   }
 }
