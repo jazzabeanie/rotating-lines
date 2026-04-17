@@ -16,14 +16,16 @@ var CONFIG_HTML = [
 '<div class="row"><label for="line">Line</label><input type="color" id="line" value="#ffffff"></div>',
 '<div class="row" style="flex-wrap:wrap"><label for="smooth" style="width:100%;margin-bottom:8px">Smooth animation above <span id="sval">80</span>% battery</label><input type="range" id="smooth" min="0" max="100" step="10" value="80" style="width:100%"></div>',
 '<div class="row" style="flex-wrap:wrap"><label for="secthresh" style="width:100%;margin-bottom:8px">Hide seconds below <span id="secval">60</span>% battery (0 = always show)</label><input type="range" id="secthresh" min="0" max="100" step="10" value="60" style="width:100%"></div>',
+'<div class="row" style="flex-wrap:wrap"><label for="batshow" style="width:100%;margin-bottom:8px">Show battery below <span id="batval">50</span>% (0 = never show)</label><input type="range" id="batshow" min="0" max="100" step="10" value="50" style="width:100%"></div>',
 '<button id="save">Save</button>',
 '<script>(function(){',
 'var params={};location.search.replace(/^\\?/,"").split("&").forEach(function(p){if(!p)return;var i=p.indexOf("=");params[decodeURIComponent(p.slice(0,i))]=decodeURIComponent(p.slice(i+1));});',
 'var returnTo=params.return_to||"pebblejs://close#";',
 'var smoothEl=document.getElementById("smooth");var svalEl=document.getElementById("sval");smoothEl.addEventListener("input",function(){svalEl.textContent=smoothEl.value;});',
 'var secEl=document.getElementById("secthresh");var secvalEl=document.getElementById("secval");secEl.addEventListener("input",function(){secvalEl.textContent=secEl.value;});',
-'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}}catch(e){}',
-'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10)};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
+'var batEl=document.getElementById("batshow");var batvalEl=document.getElementById("batval");batEl.addEventListener("input",function(){batvalEl.textContent=batEl.value;});',
+'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}if(saved.battery_show_threshold!=null){batEl.value=saved.battery_show_threshold;batvalEl.textContent=saved.battery_show_threshold;}}catch(e){}',
+'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10),battery_show_threshold:parseInt(batEl.value,10)};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
 '})();</script></body></html>'
 ].join('');
 
@@ -53,6 +55,9 @@ Pebble.addEventListener('webviewclosed', function (e) {
   }
   if (settings.seconds_threshold != null) {
     msg.SECONDS_THRESHOLD = settings.seconds_threshold;
+  }
+  if (settings.battery_show_threshold != null) {
+    msg.BATTERY_SHOW_THRESHOLD = settings.battery_show_threshold;
   }
   Pebble.sendAppMessage(msg);
 });

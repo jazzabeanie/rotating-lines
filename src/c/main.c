@@ -4,6 +4,7 @@
 #define PERSIST_KEY_LINE_COLOR 2
 #define PERSIST_KEY_SMOOTH_THRESHOLD 3
 #define PERSIST_KEY_SECONDS_THRESHOLD 4
+#define PERSIST_KEY_BATTERY_SHOW_THRESHOLD 5
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -20,6 +21,7 @@ static int32_t s_outer_angle;
 static AppTimer *s_smooth_timer;
 static int s_smooth_threshold = 80;
 static int s_seconds_threshold = 60;
+static int s_battery_show_threshold = 50;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -118,12 +120,31 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle, bo
 
 static void draw_battery(GContext *ctx, GRect bounds) {
   BatteryChargeState state = battery_state_service_peek();
+  if (state.charge_percent > s_battery_show_threshold) return;
+
+  int x = 4;
+  int y = bounds.size.h - 18;
+
+  // Battery body
+  graphics_context_set_stroke_color(ctx, s_line_color);
+  graphics_context_set_stroke_width(ctx, 1);
+  graphics_draw_rect(ctx, GRect(x, y + 2, 16, 10));
+  // Battery nub
+  graphics_context_set_fill_color(ctx, s_line_color);
+  graphics_fill_rect(ctx, GRect(x + 16, y + 4, 2, 6), 0, GCornerNone);
+  // Fill level
+  int fill_w = state.charge_percent * 14 / 100;
+  if (fill_w > 0) {
+    graphics_fill_rect(ctx, GRect(x + 1, y + 3, fill_w, 8), 0, GCornerNone);
+  }
+
+  // Percentage text
   char buf[8];
   snprintf(buf, sizeof(buf), "%d%%", state.charge_percent);
   graphics_context_set_text_color(ctx, s_line_color);
-  GRect rect = GRect(2, bounds.size.h - 20, 40, 20);
+  GRect text_rect = GRect(x + 22, y - 2, 36, 16);
   graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-                     rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+                     text_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 }
 
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
@@ -216,6 +237,9 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_SECONDS_THRESHOLD)) {
     s_seconds_threshold = persist_read_int(PERSIST_KEY_SECONDS_THRESHOLD);
   }
+  if (persist_exists(PERSIST_KEY_BATTERY_SHOW_THRESHOLD)) {
+    s_battery_show_threshold = persist_read_int(PERSIST_KEY_BATTERY_SHOW_THRESHOLD);
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -242,6 +266,11 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (sec_thresh) {
     s_seconds_threshold = sec_thresh->value->int32;
     persist_write_int(PERSIST_KEY_SECONDS_THRESHOLD, s_seconds_threshold);
+  }
+  Tuple *bat_thresh = dict_find(iter, MESSAGE_KEY_BATTERY_SHOW_THRESHOLD);
+  if (bat_thresh) {
+    s_battery_show_threshold = bat_thresh->value->int32;
+    persist_write_int(PERSIST_KEY_BATTERY_SHOW_THRESHOLD, s_battery_show_threshold);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);

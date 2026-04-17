@@ -29,7 +29,8 @@
       "BG_COLOR",
       "LINE_COLOR",
       "SMOOTH_THRESHOLD",
-      "SECONDS_THRESHOLD"
+      "SECONDS_THRESHOLD",
+      "BATTERY_SHOW_THRESHOLD"
     ]
   }
 }
