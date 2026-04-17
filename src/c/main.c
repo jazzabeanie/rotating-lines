@@ -5,6 +5,7 @@
 #define PERSIST_KEY_SMOOTH_THRESHOLD 3
 #define PERSIST_KEY_SECONDS_THRESHOLD 4
 #define PERSIST_KEY_BATTERY_SHOW_THRESHOLD 5
+#define PERSIST_KEY_LINE_ROTATION 6
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -22,6 +23,7 @@ static AppTimer *s_smooth_timer;
 static int s_smooth_threshold = 80;
 static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
+static bool s_line_rotation = true;
 
 static GPoint mark_pivot(GPoint center, int32_t dist, int i, int count) {
   int32_t mark_angle = i * TRIG_MAX_ANGLE / count;
@@ -39,11 +41,25 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
   graphics_draw_line(ctx, p1, p2);
 }
 
-static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t angle, int highlight) {
+static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
+  int32_t one_hour = TRIG_MAX_ANGLE / 12;
   for (int i = 0; i < 12; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
-    int32_t offset = i * TRIG_MAX_ANGLE / 24;
-    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, angle + offset);
+    int32_t mark_angle = i * TRIG_MAX_ANGLE / 12;
+    int32_t line_angle;
+    if (s_line_rotation) {
+      int32_t d = ((mark_angle - inner_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
+      int32_t rot;
+      if (d < one_hour) {
+        rot = (TRIG_MAX_ANGLE / 4) * d / one_hour;
+      } else {
+        rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 11 / 12);
+      }
+      line_angle = mark_angle + rot;
+    } else {
+      line_angle = inner_angle + i * TRIG_MAX_ANGLE / 24;
+    }
+    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, line_angle);
   }
 }
 
@@ -54,34 +70,42 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
   for (int i = 0; i < 60; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
-    int32_t d = ((mark_angle - middle_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
-    int32_t rot;
-    if (d < one_min) {
-      rot = (TRIG_MAX_ANGLE / 4) * d / one_min;
+    int32_t line_angle;
+    if (s_line_rotation) {
+      int32_t d = ((mark_angle - middle_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
+      int32_t rot;
+      if (d < one_min) {
+        rot = (TRIG_MAX_ANGLE / 4) * d / one_min;
+      } else {
+        rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+      }
+      line_angle = mark_angle + rot;
     } else {
-      rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+      line_angle = middle_angle + i * TRIG_MAX_ANGLE / 120;
     }
-    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, mark_angle + rot);
+    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, line_angle);
   }
 }
 
 static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t outer_angle, int highlight) {
-  // outer_angle spans 0..TRIG_MAX_ANGLE/2 over 60s; scale by 2 for full-circle mark_angle space
   int32_t one_sec = TRIG_MAX_ANGLE / 60;
   for (int i = 0; i < 60; i++) {
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
-    // d: how far ahead this line is from the current second, in full-circle angle units [0, TRIG_MAX_ANGLE)
-    int32_t d = ((mark_angle - outer_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
-    int32_t rot;
-    if (d < one_sec) {
-      // current second: smoothly sweeps 0° (radial) → 90° (tangential)
-      rot = (TRIG_MAX_ANGLE / 4) * d / one_sec;
+    int32_t line_angle;
+    if (s_line_rotation) {
+      int32_t d = ((mark_angle - outer_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
+      int32_t rot;
+      if (d < one_sec) {
+        rot = (TRIG_MAX_ANGLE / 4) * d / one_sec;
+      } else {
+        rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+      }
+      line_angle = mark_angle + rot;
     } else {
-      // lines ahead: 90° (tangential) → ~0° (nearly radial) as offset grows from 1 to 59 seconds
-      rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
+      line_angle = outer_angle + i * TRIG_MAX_ANGLE / 120;
     }
-    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, mark_angle + rot);
+    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, line_angle);
   }
 }
 
@@ -272,6 +296,9 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_BATTERY_SHOW_THRESHOLD)) {
     s_battery_show_threshold = persist_read_int(PERSIST_KEY_BATTERY_SHOW_THRESHOLD);
   }
+  if (persist_exists(PERSIST_KEY_LINE_ROTATION)) {
+    s_line_rotation = persist_read_int(PERSIST_KEY_LINE_ROTATION) != 0;
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -303,6 +330,11 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (bat_thresh) {
     s_battery_show_threshold = bat_thresh->value->int32;
     persist_write_int(PERSIST_KEY_BATTERY_SHOW_THRESHOLD, s_battery_show_threshold);
+  }
+  Tuple *rot = dict_find(iter, MESSAGE_KEY_LINE_ROTATION);
+  if (rot) {
+    s_line_rotation = rot->value->int32 != 0;
+    persist_write_int(PERSIST_KEY_LINE_ROTATION, rot->value->int32);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
