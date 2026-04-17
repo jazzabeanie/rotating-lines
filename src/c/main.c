@@ -90,7 +90,7 @@ static void draw_time_markers(GContext *ctx, GPoint center, int32_t r_circle, bo
   int minute = t->tm_min;
   int second = t->tm_sec;
 
-  int32_t dist = r_circle + 10;
+  int32_t dist = r_circle + 4;
   char buf[4];
 
   graphics_context_set_text_color(ctx, s_line_color);
