@@ -120,7 +120,9 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
         rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 59 / 60);
       }
       line_angle = mark_angle + rot;
-      graphics_context_set_stroke_width(ctx, smooth_enabled() ? phase_stroke_width(d, one_sec) : (i == highlight ? 2 : 1));
+      // TODO: step timing needs tuning to make the gradual build/fade more perceptible
+      // graphics_context_set_stroke_width(ctx, smooth_enabled() ? phase_stroke_width(d, one_sec) : (i == highlight ? 2 : 1));
+      graphics_context_set_stroke_width(ctx, 1);
     } else {
       line_angle = outer_angle + i * TRIG_MAX_ANGLE / 120;
       graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
