@@ -51,7 +51,7 @@ Pebble.addEventListener('showConfiguration', function () {
     try { s_settings = JSON.parse(localStorage.getItem('rlf_pkjs_settings') || '{}'); } catch(e) {}
   }
   var injected = '<script>var __S=' + JSON.stringify(s_settings) + ';<' + '/script>';
-  var html = CONFIG_HTML.replace('</style></head>', injected + '</style></head>');
+  var html = CONFIG_HTML.replace('</head>', injected + '</head>');
   var url = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
   Pebble.openURL(url);
 });
