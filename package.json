@@ -34,7 +34,10 @@
       "LINE_ROTATION",
       "SHOW_MARKERS",
       "EXTEND_SECOND_LINES",
-      "SHOW_DATE"
+      "SHOW_DATE",
+      "HOUR_START_PCT",
+      "MINUTE_START_PCT",
+      "SECOND_START_PCT"
     ]
   }
 }

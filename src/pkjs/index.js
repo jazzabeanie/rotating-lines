@@ -21,6 +21,9 @@ var CONFIG_HTML = [
 '<div class="row"><label for="showdate">Show date</label><input type="checkbox" id="showdate" checked style="width:24px;height:24px"></div>',
 '<div class="row"><label for="showmarkers">Show time markers</label><input type="checkbox" id="showmarkers" checked style="width:24px;height:24px"></div>',
 '<div class="row" id="extendrow" style="display:none"><label for="extendlines">Extend second lines past screen edge</label><input type="checkbox" id="extendlines" style="width:24px;height:24px"></div>',
+'<div class="row" style="flex-wrap:wrap"><label style="width:100%;margin-bottom:8px">Hour lines start at <span id="hourpctval">17</span>% radius</label><input type="range" id="hourpct" min="0" max="90" step="1" value="17" style="width:100%"></div>',
+'<div class="row" style="flex-wrap:wrap"><label style="width:100%;margin-bottom:8px">Minute lines start at <span id="minpctval">50</span>% radius</label><input type="range" id="minpct" min="0" max="90" step="1" value="50" style="width:100%"></div>',
+'<div class="row" style="flex-wrap:wrap"><label style="width:100%;margin-bottom:8px">Second lines start at <span id="secpctval">75</span>% radius</label><input type="range" id="secpct" min="0" max="95" step="1" value="75" style="width:100%"></div>',
 '<button id="save">Save</button>',
 '<script>(function(){',
 'var params={};location.search.replace(/^\\?/,"").split("&").forEach(function(p){if(!p)return;var i=p.indexOf("=");params[decodeURIComponent(p.slice(0,i))]=decodeURIComponent(p.slice(i+1));});',
@@ -29,8 +32,11 @@ var CONFIG_HTML = [
 'var secEl=document.getElementById("secthresh");var secvalEl=document.getElementById("secval");secEl.addEventListener("input",function(){secvalEl.textContent=secEl.value;});',
 'var batEl=document.getElementById("batshow");var batvalEl=document.getElementById("batval");batEl.addEventListener("input",function(){batvalEl.textContent=batEl.value;});',
 'var markersEl=document.getElementById("showmarkers");var extendRowEl=document.getElementById("extendrow");var extendEl=document.getElementById("extendlines");function updateExtendVisibility(){extendRowEl.style.display=markersEl.checked?"none":"flex";}markersEl.addEventListener("change",updateExtendVisibility);',
-'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}if(saved.battery_show_threshold!=null){batEl.value=saved.battery_show_threshold;batvalEl.textContent=saved.battery_show_threshold;}if(saved.line_rotation!=null){document.getElementById("linerot").checked=!!saved.line_rotation;}if(saved.show_date!=null){document.getElementById("showdate").checked=!!saved.show_date;}if(saved.show_markers!=null){markersEl.checked=!!saved.show_markers;}if(saved.extend_second_lines!=null){extendEl.checked=!!saved.extend_second_lines;}updateExtendVisibility();}catch(e){}',
-'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10),battery_show_threshold:parseInt(batEl.value,10),line_rotation:document.getElementById("linerot").checked?1:0,show_date:document.getElementById("showdate").checked?1:0,show_markers:markersEl.checked?1:0,extend_second_lines:extendEl.checked?1:0};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
+'var hourPctEl=document.getElementById("hourpct");var hourPctValEl=document.getElementById("hourpctval");hourPctEl.addEventListener("input",function(){hourPctValEl.textContent=hourPctEl.value;});',
+'var minPctEl=document.getElementById("minpct");var minPctValEl=document.getElementById("minpctval");minPctEl.addEventListener("input",function(){minPctValEl.textContent=minPctEl.value;});',
+'var secPctEl=document.getElementById("secpct");var secPctValEl=document.getElementById("secpctval");secPctEl.addEventListener("input",function(){secPctValEl.textContent=secPctEl.value;});',
+'try{var saved=JSON.parse(localStorage.getItem("rlf_settings")||"{}");if(saved.bg_color)document.getElementById("bg").value=saved.bg_color;if(saved.line_color)document.getElementById("line").value=saved.line_color;if(saved.smooth_threshold!=null){smoothEl.value=saved.smooth_threshold;svalEl.textContent=saved.smooth_threshold;}if(saved.seconds_threshold!=null){secEl.value=saved.seconds_threshold;secvalEl.textContent=saved.seconds_threshold;}if(saved.battery_show_threshold!=null){batEl.value=saved.battery_show_threshold;batvalEl.textContent=saved.battery_show_threshold;}if(saved.line_rotation!=null){document.getElementById("linerot").checked=!!saved.line_rotation;}if(saved.show_date!=null){document.getElementById("showdate").checked=!!saved.show_date;}if(saved.show_markers!=null){markersEl.checked=!!saved.show_markers;}if(saved.extend_second_lines!=null){extendEl.checked=!!saved.extend_second_lines;}if(saved.hour_start_pct!=null){hourPctEl.value=saved.hour_start_pct;hourPctValEl.textContent=saved.hour_start_pct;}if(saved.minute_start_pct!=null){minPctEl.value=saved.minute_start_pct;minPctValEl.textContent=saved.minute_start_pct;}if(saved.second_start_pct!=null){secPctEl.value=saved.second_start_pct;secPctValEl.textContent=saved.second_start_pct;}updateExtendVisibility();}catch(e){}',
+'document.getElementById("save").addEventListener("click",function(){var s={bg_color:document.getElementById("bg").value,line_color:document.getElementById("line").value,smooth_threshold:parseInt(smoothEl.value,10),seconds_threshold:parseInt(secEl.value,10),battery_show_threshold:parseInt(batEl.value,10),line_rotation:document.getElementById("linerot").checked?1:0,show_date:document.getElementById("showdate").checked?1:0,show_markers:markersEl.checked?1:0,extend_second_lines:extendEl.checked?1:0,hour_start_pct:parseInt(hourPctEl.value,10),minute_start_pct:parseInt(minPctEl.value,10),second_start_pct:parseInt(secPctEl.value,10)};try{localStorage.setItem("rlf_settings",JSON.stringify(s));}catch(e){}document.location=returnTo+encodeURIComponent(JSON.stringify(s));});',
 '})();</script></body></html>'
 ].join('');
 
@@ -75,6 +81,15 @@ Pebble.addEventListener('webviewclosed', function (e) {
   }
   if (!settings.show_markers && settings.extend_second_lines != null) {
     msg.EXTEND_SECOND_LINES = settings.extend_second_lines;
+  }
+  if (settings.hour_start_pct != null) {
+    msg.HOUR_START_PCT = settings.hour_start_pct;
+  }
+  if (settings.minute_start_pct != null) {
+    msg.MINUTE_START_PCT = settings.minute_start_pct;
+  }
+  if (settings.second_start_pct != null) {
+    msg.SECOND_START_PCT = settings.second_start_pct;
   }
   Pebble.sendAppMessage(msg);
 });

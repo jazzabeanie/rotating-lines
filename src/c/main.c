@@ -9,6 +9,9 @@
 #define PERSIST_KEY_SHOW_MARKERS 7
 #define PERSIST_KEY_EXTEND_SECOND_LINES 8
 #define PERSIST_KEY_SHOW_DATE 9
+#define PERSIST_KEY_HOUR_START_PCT 10
+#define PERSIST_KEY_MINUTE_START_PCT 11
+#define PERSIST_KEY_SECOND_START_PCT 12
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -30,6 +33,9 @@ static bool s_line_rotation = true;
 static bool s_show_markers = true;
 static bool s_extend_second_lines = false;
 static bool s_show_date = true;
+static int s_hour_start_pct = 17;
+static int s_minute_start_pct = 50;
+static int s_second_start_pct = 75;
 
 static AppTimer *s_startup_timer;
 static time_t s_startup_time;
@@ -83,6 +89,10 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 }
 
 static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
+  int32_t inner_r = r * s_hour_start_pct / 100;
+  int32_t outer_r = r * s_minute_start_pct / 100;
+  int32_t line_len = outer_r - inner_r;
+  int32_t pivot_dist = inner_r + line_len / 2;
   int32_t one_quarter = TRIG_MAX_ANGLE / 48;
   int32_t prog = startup_progress();
   int32_t eased = prog;
@@ -113,13 +123,15 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
     }
     bool is_highlighted = (i % 4 == 0) && (i / 4 == highlight);
     graphics_context_set_stroke_width(ctx, is_highlighted ? 2 : 1);
-    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 48), r / 2, line_angle);
+    draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 48), line_len, line_angle);
   }
 }
 
 static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t middle_angle, int highlight, bool extended) {
-  int32_t pivot_dist = extended ? r * 3 / 4 : r * 5 / 8;
-  int32_t length = extended ? r / 2 : r / 4;
+  int32_t inner_r = r * s_minute_start_pct / 100;
+  int32_t outer_r = extended ? r : r * s_second_start_pct / 100;
+  int32_t length = outer_r - inner_r;
+  int32_t pivot_dist = inner_r + length / 2;
   int32_t one_min = TRIG_MAX_ANGLE / 60;
   int32_t prog = startup_progress();
   int32_t eased = prog;
@@ -154,6 +166,9 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
 }
 
 static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t outer_angle, int highlight) {
+  int32_t sec_inner_r = r * s_second_start_pct / 100;
+  int32_t sec_len = r - sec_inner_r;
+  int32_t sec_pivot = sec_inner_r + sec_len / 2;
   int32_t one_sec = TRIG_MAX_ANGLE / 60;
   int32_t prog = startup_progress();
   int32_t eased = prog;
@@ -186,7 +201,7 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
       while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
       line_angle = mark_angle + diff * eased / 1000;
     }
-    draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, line_angle);
+    draw_rotating_line(ctx, mark_pivot(center, sec_pivot, i, 60), sec_len, line_angle);
   }
 }
 
@@ -413,6 +428,15 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_SHOW_DATE)) {
     s_show_date = persist_read_int(PERSIST_KEY_SHOW_DATE) != 0;
   }
+  if (persist_exists(PERSIST_KEY_HOUR_START_PCT)) {
+    s_hour_start_pct = persist_read_int(PERSIST_KEY_HOUR_START_PCT);
+  }
+  if (persist_exists(PERSIST_KEY_MINUTE_START_PCT)) {
+    s_minute_start_pct = persist_read_int(PERSIST_KEY_MINUTE_START_PCT);
+  }
+  if (persist_exists(PERSIST_KEY_SECOND_START_PCT)) {
+    s_second_start_pct = persist_read_int(PERSIST_KEY_SECOND_START_PCT);
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -464,6 +488,21 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (show_date) {
     s_show_date = show_date->value->int32 != 0;
     persist_write_int(PERSIST_KEY_SHOW_DATE, show_date->value->int32);
+  }
+  Tuple *hour_start = dict_find(iter, MESSAGE_KEY_HOUR_START_PCT);
+  if (hour_start) {
+    s_hour_start_pct = hour_start->value->int32;
+    persist_write_int(PERSIST_KEY_HOUR_START_PCT, s_hour_start_pct);
+  }
+  Tuple *minute_start = dict_find(iter, MESSAGE_KEY_MINUTE_START_PCT);
+  if (minute_start) {
+    s_minute_start_pct = minute_start->value->int32;
+    persist_write_int(PERSIST_KEY_MINUTE_START_PCT, s_minute_start_pct);
+  }
+  Tuple *second_start = dict_find(iter, MESSAGE_KEY_SECOND_START_PCT);
+  if (second_start) {
+    s_second_start_pct = second_start->value->int32;
+    persist_write_int(PERSIST_KEY_SECOND_START_PCT, s_second_start_pct);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
