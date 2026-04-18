@@ -43,7 +43,7 @@ static int32_t startup_progress(void) {
   time_t now;
   uint16_t ms;
   time_ms(&now, &ms);
-  int32_t elapsed = (int32_t)(now - s_startup_time) * 1000 + (int32_t)ms - (int32_t)s_startup_ms;
+  int32_t elapsed = (int32_t)(now - s_startup_time) * 1000 + (int32_t)ms - (int32_t)s_startup_ms - 250;
   if (elapsed >= 1000) return 1000;
   if (elapsed < 0) return 0;
   return elapsed;
