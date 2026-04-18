@@ -399,8 +399,12 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 static void load_settings(void) {
-  s_bg_color = GColorBlack;
-  s_line_color = GColorWhite;
+#ifdef PBL_COLOR
+  s_bg_color = GColorYellow;
+#else
+  s_bg_color = GColorWhite;
+#endif
+  s_line_color = GColorBlack;
   if (persist_exists(PERSIST_KEY_BG_COLOR)) {
     s_bg_color = GColorFromHEX(persist_read_int(PERSIST_KEY_BG_COLOR));
   }
