@@ -34,10 +34,12 @@ static bool s_show_date = true;
 static AppTimer *s_startup_timer;
 static time_t s_startup_time;
 static uint16_t s_startup_ms;
+static bool s_startup_started = false;
 
 static bool smooth_enabled(void);
 
 static int32_t startup_progress(void) {
+  if (!s_startup_started) return 0;
   time_t now;
   uint16_t ms;
   time_ms(&now, &ms);
@@ -281,6 +283,11 @@ static void draw_date(GContext *ctx, GRect bounds) {
 }
 
 static void canvas_update_proc(Layer *layer, GContext *ctx) {
+  if (!s_startup_started) {
+    s_startup_started = true;
+    time_ms(&s_startup_time, &s_startup_ms);
+  }
+
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
   uint16_t radius = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 2;
@@ -486,7 +493,6 @@ static void window_unload(Window *window) {
 
 static void init(void) {
   load_settings();
-  time_ms(&s_startup_time, &s_startup_ms);
 
   s_window = window_create();
   window_set_background_color(s_window, s_bg_color);
