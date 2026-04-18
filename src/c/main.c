@@ -83,27 +83,27 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 }
 
 static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
-  int32_t one_hour = TRIG_MAX_ANGLE / 12;
+  int32_t one_quarter = TRIG_MAX_ANGLE / 48;
   int32_t prog = startup_progress();
   int32_t eased = prog;
   if (prog < 1000) {
     int64_t inv = 1000 - prog;
     eased = (int32_t)(1000 - inv * inv * inv / 1000000);
   }
-  for (int i = 0; i < 12; i++) {
-    int32_t mark_angle = i * TRIG_MAX_ANGLE / 12;
+  for (int i = 0; i < 48; i++) {
+    int32_t mark_angle = i * TRIG_MAX_ANGLE / 48;
     int32_t line_angle;
     if (s_line_rotation) {
       int32_t d = ((mark_angle - inner_angle * 2) % TRIG_MAX_ANGLE + TRIG_MAX_ANGLE) % TRIG_MAX_ANGLE;
       int32_t rot;
-      if (d < one_hour) {
-        rot = (TRIG_MAX_ANGLE / 4) * d / one_hour;
+      if (d < one_quarter) {
+        rot = (TRIG_MAX_ANGLE / 4) * d / one_quarter;
       } else {
-        rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 11 / 12);
+        rot = (TRIG_MAX_ANGLE / 4) * (TRIG_MAX_ANGLE - d) / (TRIG_MAX_ANGLE * 47 / 48);
       }
       line_angle = mark_angle + rot;
     } else {
-      line_angle = inner_angle + i * TRIG_MAX_ANGLE / 24;
+      line_angle = inner_angle + i * TRIG_MAX_ANGLE / 96;
     }
     if (eased < 1000) {
       int32_t diff = line_angle - mark_angle;
@@ -111,8 +111,9 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
       while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
       line_angle = mark_angle + diff * eased / 1000;
     }
-    graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
-    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, line_angle);
+    bool is_highlighted = (i % 4 == 0) && (i / 4 == highlight);
+    graphics_context_set_stroke_width(ctx, is_highlighted ? 2 : 1);
+    draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 48), r / 2, line_angle);
   }
 }
 
