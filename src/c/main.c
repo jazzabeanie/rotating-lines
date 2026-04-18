@@ -31,7 +31,21 @@ static bool s_show_markers = true;
 static bool s_extend_second_lines = false;
 static bool s_show_date = true;
 
+static AppTimer *s_startup_timer;
+static time_t s_startup_time;
+static uint16_t s_startup_ms;
+
 static bool smooth_enabled(void);
+
+static int32_t startup_progress(void) {
+  time_t now;
+  uint16_t ms;
+  time_ms(&now, &ms);
+  int32_t elapsed = (int32_t)(now - s_startup_time) * 1000 + (int32_t)ms - (int32_t)s_startup_ms;
+  if (elapsed >= 1000) return 1000;
+  if (elapsed < 0) return 0;
+  return elapsed;
+}
 
 static int32_t phase_stroke_width(int32_t d, int32_t one_unit) {
   int32_t t = one_unit / 4;
@@ -68,6 +82,12 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
 
 static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
   int32_t one_hour = TRIG_MAX_ANGLE / 12;
+  int32_t prog = startup_progress();
+  int32_t eased = prog;
+  if (prog < 1000) {
+    int64_t inv = 1000 - prog;
+    eased = (int32_t)(1000 - inv * inv * inv / 1000000);
+  }
   for (int i = 0; i < 12; i++) {
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 12;
     int32_t line_angle;
@@ -83,6 +103,12 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
     } else {
       line_angle = inner_angle + i * TRIG_MAX_ANGLE / 24;
     }
+    if (eased < 1000) {
+      int32_t diff = line_angle - mark_angle;
+      while (diff > TRIG_MAX_ANGLE / 2) diff -= TRIG_MAX_ANGLE;
+      while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
+      line_angle = mark_angle + diff * eased / 1000;
+    }
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     draw_rotating_line(ctx, mark_pivot(center, r / 4, i, 12), r / 2, line_angle);
   }
@@ -92,6 +118,12 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
   int32_t pivot_dist = extended ? r * 3 / 4 : r * 5 / 8;
   int32_t length = extended ? r / 2 : r / 4;
   int32_t one_min = TRIG_MAX_ANGLE / 60;
+  int32_t prog = startup_progress();
+  int32_t eased = prog;
+  if (prog < 1000) {
+    int64_t inv = 1000 - prog;
+    eased = (int32_t)(1000 - inv * inv * inv / 1000000);
+  }
   for (int i = 0; i < 60; i++) {
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
     int32_t line_angle;
@@ -107,6 +139,12 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
     } else {
       line_angle = middle_angle + i * TRIG_MAX_ANGLE / 120;
     }
+    if (eased < 1000) {
+      int32_t diff = line_angle - mark_angle;
+      while (diff > TRIG_MAX_ANGLE / 2) diff -= TRIG_MAX_ANGLE;
+      while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
+      line_angle = mark_angle + diff * eased / 1000;
+    }
     graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
     draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 60), length, line_angle);
   }
@@ -114,6 +152,12 @@ static void draw_middle_lines(GContext *ctx, GPoint center, int32_t r, int32_t m
 
 static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t outer_angle, int highlight) {
   int32_t one_sec = TRIG_MAX_ANGLE / 60;
+  int32_t prog = startup_progress();
+  int32_t eased = prog;
+  if (prog < 1000) {
+    int64_t inv = 1000 - prog;
+    eased = (int32_t)(1000 - inv * inv * inv / 1000000);
+  }
   for (int i = 0; i < 60; i++) {
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 60;
     int32_t line_angle;
@@ -132,6 +176,12 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
     } else {
       line_angle = outer_angle + i * TRIG_MAX_ANGLE / 120;
       graphics_context_set_stroke_width(ctx, i == highlight ? 2 : 1);
+    }
+    if (eased < 1000) {
+      int32_t diff = line_angle - mark_angle;
+      while (diff > TRIG_MAX_ANGLE / 2) diff -= TRIG_MAX_ANGLE;
+      while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
+      line_angle = mark_angle + diff * eased / 1000;
     }
     draw_rotating_line(ctx, mark_pivot(center, r * 7 / 8, i, 60), r / 4, line_angle);
   }
@@ -312,6 +362,14 @@ static void smooth_rotation_tick(void *data) {
   }
 }
 
+static void startup_tick(void *data) {
+  s_startup_timer = NULL;
+  if (s_canvas_layer) layer_mark_dirty(s_canvas_layer);
+  if (startup_progress() < 1000) {
+    s_startup_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, startup_tick, NULL);
+  }
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_angles();
   ensure_smooth_timer();
@@ -428,6 +486,7 @@ static void window_unload(Window *window) {
 
 static void init(void) {
   load_settings();
+  time_ms(&s_startup_time, &s_startup_ms);
 
   s_window = window_create();
   window_set_background_color(s_window, s_bg_color);
@@ -441,7 +500,9 @@ static void init(void) {
   app_message_open(128, 64);
 
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  update_angles();
   ensure_smooth_timer();
+  s_startup_timer = app_timer_register(SMOOTH_ROTATION_INTERVAL_MS, startup_tick, NULL);
 }
 
 static void deinit(void) {
