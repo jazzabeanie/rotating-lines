@@ -10,13 +10,13 @@
     "uuid": "d2f3a1b4-5c6e-4a7b-8c9d-0e1f2a3b4c5d",
     "sdkVersion": "3",
     "enableMultiJS": true,
-    "_comment_targetPlatforms": "gabbro is omitted because the rebble/pebble-sdk Docker image used by CI does not ship a gabbro SDK: it silently skips building the gabbro binary but still writes 'gabbro' into the bundled appinfo.json, which causes the Pebble mobile app to reject the .pbw on sideload (platform declared in appinfo but no gabbro/ folder in the zip). Re-add once the CI image supports gabbro.",
     "targetPlatforms": [
       "aplite",
       "basalt",
       "chalk",
       "diorite",
-      "emery"
+      "emery",
+      "gabbro"
     ],
     "watchapp": {
       "watchface": true
