@@ -30,12 +30,12 @@ static int s_smooth_threshold = 80;
 static int s_seconds_threshold = 60;
 static int s_battery_show_threshold = 50;
 static bool s_line_rotation = true;
-static bool s_show_markers = true;
-static bool s_extend_second_lines = false;
+static bool s_show_markers = false;
+static bool s_extend_second_lines = true;
 static bool s_show_date = true;
-static int s_hour_start_pct = 17;
-static int s_minute_start_pct = 50;
-static int s_second_start_pct = 75;
+static int s_hour_start_pct = 25;
+static int s_minute_start_pct = 55;
+static int s_second_start_pct = 80;
 
 static AppTimer *s_startup_timer;
 static time_t s_startup_time;
