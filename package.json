@@ -1,7 +1,7 @@
 {
   "name": "rotating-lines-face",
   "author": "",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "keywords": ["pebble-app"],
   "private": true,
   "dependencies": {},
@@ -37,7 +37,8 @@
       "SHOW_DATE",
       "HOUR_START_PCT",
       "MINUTE_START_PCT",
-      "SECOND_START_PCT"
+      "SECOND_START_PCT",
+      "SHOW_HOUR_DOTS"
     ]
   }
 }

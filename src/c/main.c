@@ -12,6 +12,7 @@
 #define PERSIST_KEY_HOUR_START_PCT 10
 #define PERSIST_KEY_MINUTE_START_PCT 11
 #define PERSIST_KEY_SECOND_START_PCT 12
+#define PERSIST_KEY_SHOW_HOUR_DOTS 13
 
 #define SMOOTH_ROTATION_INTERVAL_MS 33
 
@@ -33,6 +34,7 @@ static bool s_line_rotation = true;
 static bool s_show_markers = false;
 static bool s_extend_second_lines = true;
 static bool s_show_date = true;
+static bool s_show_hour_dots = true;
 static int s_hour_start_pct = 25;
 static int s_minute_start_pct = 55;
 static int s_second_start_pct = 80;
@@ -345,7 +347,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   }
 
   draw_inner_lines(ctx, center, r_eff, s_inner_angle);
-  draw_hour_dots(ctx, center, r_eff);
+  if (s_show_hour_dots) draw_hour_dots(ctx, center, r_eff);
   draw_middle_lines(ctx, center, r_eff, s_middle_angle, minute_idx, !show_seconds);
   if (show_seconds) {
     draw_rim_lines(ctx, center, r_eff, s_outer_angle, second_idx);
@@ -454,6 +456,9 @@ static void load_settings(void) {
   if (persist_exists(PERSIST_KEY_SECOND_START_PCT)) {
     s_second_start_pct = persist_read_int(PERSIST_KEY_SECOND_START_PCT);
   }
+  if (persist_exists(PERSIST_KEY_SHOW_HOUR_DOTS)) {
+    s_show_hour_dots = persist_read_int(PERSIST_KEY_SHOW_HOUR_DOTS) != 0;
+  }
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -520,6 +525,11 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if (second_start) {
     s_second_start_pct = second_start->value->int32;
     persist_write_int(PERSIST_KEY_SECOND_START_PCT, s_second_start_pct);
+  }
+  Tuple *show_hour_dots = dict_find(iter, MESSAGE_KEY_SHOW_HOUR_DOTS);
+  if (show_hour_dots) {
+    s_show_hour_dots = show_hour_dots->value->int32 != 0;
+    persist_write_int(PERSIST_KEY_SHOW_HOUR_DOTS, show_hour_dots->value->int32);
   }
   if (s_canvas_layer) {
     layer_mark_dirty(s_canvas_layer);
