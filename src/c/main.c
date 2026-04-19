@@ -88,7 +88,7 @@ static void draw_rotating_line(GContext *ctx, GPoint pivot, int32_t length, int3
   graphics_draw_line(ctx, p1, p2);
 }
 
-static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle, int highlight) {
+static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t inner_angle) {
   int32_t inner_r = r * s_hour_start_pct / 100;
   int32_t outer_r = r * s_minute_start_pct / 100;
   int32_t line_len = outer_r - inner_r;
@@ -100,6 +100,7 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
     int64_t inv = 1000 - prog;
     eased = (int32_t)(1000 - inv * inv * inv / 1000000);
   }
+  int recently_aligned = (int)(((inner_angle * 2) % TRIG_MAX_ANGLE) * 48 / TRIG_MAX_ANGLE);
   for (int i = 0; i < 48; i++) {
     int32_t mark_angle = i * TRIG_MAX_ANGLE / 48;
     int32_t line_angle;
@@ -121,8 +122,7 @@ static void draw_inner_lines(GContext *ctx, GPoint center, int32_t r, int32_t in
       while (diff < -TRIG_MAX_ANGLE / 2) diff += TRIG_MAX_ANGLE;
       line_angle = mark_angle + diff * eased / 1000;
     }
-    bool is_highlighted = (i % 4 == 0) && (i / 4 == highlight);
-    graphics_context_set_stroke_width(ctx, is_highlighted ? 2 : 1);
+    graphics_context_set_stroke_width(ctx, i == recently_aligned ? 2 : 1);
     draw_rotating_line(ctx, mark_pivot(center, pivot_dist, i, 48), line_len, line_angle);
   }
 }
@@ -202,6 +202,19 @@ static void draw_rim_lines(GContext *ctx, GPoint center, int32_t r, int32_t oute
       line_angle = mark_angle + diff * eased / 1000;
     }
     draw_rotating_line(ctx, mark_pivot(center, sec_pivot, i, 60), sec_len, line_angle);
+  }
+}
+
+static void draw_hour_dots(GContext *ctx, GPoint center, int32_t r) {
+  int32_t dot_r = r * s_minute_start_pct / 100;
+  graphics_context_set_fill_color(ctx, s_line_color);
+  for (int i = 0; i < 12; i++) {
+    int32_t angle = i * TRIG_MAX_ANGLE / 12;
+    GPoint pt = {
+      .x = center.x + sin_lookup(angle) * dot_r / TRIG_MAX_RATIO,
+      .y = center.y - cos_lookup(angle) * dot_r / TRIG_MAX_RATIO,
+    };
+    graphics_fill_circle(ctx, pt, 1);
   }
 }
 
@@ -316,7 +329,6 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
-  int hour_idx = t->tm_hour % 12;
   int minute_idx = t->tm_min;
   int second_idx = t->tm_sec;
 
@@ -332,7 +344,8 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
     r_eff = r;
   }
 
-  draw_inner_lines(ctx, center, r_eff, s_inner_angle, hour_idx);
+  draw_inner_lines(ctx, center, r_eff, s_inner_angle);
+  draw_hour_dots(ctx, center, r_eff);
   draw_middle_lines(ctx, center, r_eff, s_middle_angle, minute_idx, !show_seconds);
   if (show_seconds) {
     draw_rim_lines(ctx, center, r_eff, s_outer_angle, second_idx);
